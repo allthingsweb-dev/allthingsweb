@@ -43,12 +43,26 @@ export const talkSpeakerSchema = z.object({
   links: personLinksSchema,
 });
 
+export const talkRecordingSchema = z.object({
+  url: z.httpUrl(),
+  startSeconds: z.int().min(0).nullable(),
+});
+
+export const talkArtifactSchema = z.object({
+  kind: z.enum(["recording", "slides", "repo", "site", "other"]),
+  url: z.httpUrl(),
+  label: z.string().nullable(),
+  elsewhere: z.string().nullable(),
+});
+
 export const eventSchema = eventSummarySchema.extend({
   talks: z.array(
     z.object({
       title: z.string(),
       description: z.string(),
       speakers: z.array(talkSpeakerSchema),
+      recording: talkRecordingSchema.nullable(),
+      artifacts: z.array(talkArtifactSchema),
     }),
   ),
   hosts: z.array(z.object({ name: z.string(), about: z.string() })),

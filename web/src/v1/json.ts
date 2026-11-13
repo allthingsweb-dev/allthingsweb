@@ -1,5 +1,10 @@
 import type * as Rows from "allthings-core/src/rows.ts";
 import { sanitizeRichText } from "allthings-core/src/rich-text.ts";
+import {
+  type TalkArtifact,
+  type TalkRecording,
+  talkLinks,
+} from "allthings-core/src/talk-artifacts.ts";
 import { DateTime, Effect } from "effect";
 import type {
   DirectoryRow,
@@ -93,6 +98,10 @@ export interface EventDetailsJson extends EventJson {
         readonly linkedin?: string;
       };
     }>;
+    /** The talk's own recording, from its start; null when it has none. */
+    readonly recording: TalkRecording | null;
+    /** Its slides, code, site and other links, in order. */
+    readonly artifacts: ReadonlyArray<TalkArtifact>;
   }>;
   readonly hosts: ReadonlyArray<{
     readonly id: string;
@@ -234,6 +243,7 @@ export const eventDetailsJson = (
           bio: speaker.bio,
           socials: handles(speaker),
         })),
+        ...talkLinks(talk.artifacts),
       })),
     ),
     (talks) => ({

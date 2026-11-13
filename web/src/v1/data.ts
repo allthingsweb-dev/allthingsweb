@@ -1,10 +1,15 @@
 import {
+  artifactsOf,
   hostsOf,
   latestFirst,
   published,
   talkAppearances,
   talksOf,
 } from "allthings-core/src/catalog.ts";
+import {
+  ArtifactRow,
+  artifactJson,
+} from "allthings-core/src/talk-artifacts.ts";
 import { asOf } from "allthings-core/src/clock.ts";
 import * as Rows from "allthings-core/src/rows.ts";
 import { DataSourceError } from "allthings-core/src/errors.ts";
@@ -93,6 +98,8 @@ export const EventDetailsRow = Schema.Struct({
       /** Editor HTML as stored. */
       description: Schema.String,
       speakers: Schema.Array(SpeakerRow),
+      /** What it left behind, read with the catalog's `artifactsOf`. */
+      artifacts: Schema.Array(ArtifactRow),
     }),
   ),
   hosts: Schema.Array(
@@ -152,10 +159,7 @@ export interface V1DataShape {
 
 /** Columns that reference an image, as the queries alias their tables. */
 type ImageColumn =
-  | "e.preview_image"
-  | "p.image"
-  | "s.square_logo_light"
-  | "s.square_logo_dark";
+  "e.preview_image" | "p.image" | "s.square_logo_light" | "s.square_logo_dark";
 
 /** `column`'s image as a JSON object matching `ImageRow`, or NULL. */
 const imageJson = (column: ImageColumn) =>
@@ -209,7 +213,8 @@ const make = Effect.gen(function* () {
     execute: (id) => sql`
       SELECT ${eventColumns},
         ${talksOf(sql, "e", {
-          talk: sql`'id', t.id, 'title', t.title, 'description', t.description`,
+          talk: sql`'id', t.id, 'title', t.title, 'description', t.description,
+            'artifacts', ${artifactsOf(sql, artifactJson(sql))}`,
           speaker: sql`json_build_object(
             'id', p.id, 'name', p.name, 'title', p.title, 'bio', p.bio,
             ${sql.literal(handleColumns)},

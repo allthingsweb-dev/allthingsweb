@@ -7,6 +7,7 @@ import {
   RedirectNotFound,
 } from "../src/errors.ts";
 import { Events } from "../src/events.ts";
+import { toEvent } from "../src/mappers.ts";
 import { Redirects } from "../src/redirects.ts";
 import type * as Rows from "../src/rows.ts";
 import { Speakers } from "../src/speakers.ts";
@@ -151,6 +152,7 @@ const serverComponents: Rows.Talk = {
     "<p>Why <strong>RSC</strong> &amp; streaming matter.</p><ul><li>One</li><li>Two</li></ul>",
   format: "talk",
   speakers: [speaking(grace), speaking(ada)],
+  artifacts: [],
 };
 
 describe("Events", () => {
@@ -209,6 +211,7 @@ describe("Events", () => {
           '<p>Typed errors<br>and services.</p><script>alert(1)</script><img src="x" onerror="alert(1)">',
         format: "talk",
         speakers: [speaking(linus)],
+        artifacts: [],
       },
       serverComponents,
     ]);
@@ -287,6 +290,66 @@ describe("Events", () => {
     expect(event.people).toEqual([]);
     expect(event.lumaGuestCount).toBeNull();
     expect(event.lumaCheckedInCount).toBeNull();
+  });
+
+  test("gets what each talk left behind, and get_event shows its own recording from its start and its other links", async () => {
+    const database = await seededDatabase();
+    try {
+      await database.exec(`
+        INSERT INTO talk_artifacts (talk_id, kind, url, label, start_seconds, position, updated_at) VALUES
+          ('a0000000-0000-4000-8000-000000000001', 'slides', 'https://speakerdeck.com/grace/rsc', NULL, NULL, 1, now()),
+          ('a0000000-0000-4000-8000-000000000001', 'recording', 'https://www.youtube.com/watch?v=abc123', NULL, 385, 0, now());
+      `);
+      const event = await run(
+        Events.use((events) => events.getPublished("2026-08-12-react-at-acme")),
+        { database },
+      );
+      expect(event.talks[1]?.artifacts).toEqual([
+        {
+          kind: "recording",
+          url: "https://www.youtube.com/watch?v=abc123",
+          label: null,
+          startSeconds: 385,
+          elsewhere: null,
+        },
+        {
+          kind: "slides",
+          url: "https://speakerdeck.com/grace/rsc",
+          label: null,
+          startSeconds: null,
+          elsewhere: null,
+        },
+      ]);
+      const shown = await Effect.runPromise(
+        toEvent(event, "https://allthings.dev", now),
+      );
+      expect(
+        shown.talks.map(({ title, recording, artifacts }) => ({
+          title,
+          recording,
+          artifacts,
+        })),
+      ).toEqual([
+        { title: "Effect in production", recording: null, artifacts: [] },
+        {
+          title: "Server components",
+          recording: {
+            url: "https://www.youtube.com/watch?v=abc123&t=385",
+            startSeconds: 385,
+          },
+          artifacts: [
+            {
+              kind: "slides",
+              url: "https://speakerdeck.com/grace/rsc",
+              label: null,
+              elsewhere: null,
+            },
+          ],
+        },
+      ]);
+    } finally {
+      await database.close();
+    }
   });
 
   test("a talk given at two events appears at both", async () => {

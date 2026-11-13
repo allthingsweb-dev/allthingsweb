@@ -43,6 +43,8 @@ export const event: Event = {
           },
         },
       ],
+      recording: null,
+      artifacts: [],
     },
   ],
   hosts: [{ name: "CodeRabbit", about: "AI code reviews." }],

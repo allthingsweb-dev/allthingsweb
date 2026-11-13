@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { ArtifactRow } from "./talk-artifacts.ts";
 
 /**
  * What the repositories read from Postgres, decoded at the boundary. Only the
@@ -115,6 +116,11 @@ export const Talk = Schema.Struct({
   description: Schema.String,
   format: TalkFormat,
   speakers: Schema.Array(TalkSpeaker),
+  /**
+   * What it left behind (src/talk-artifacts.ts), where the statement reads
+   * it with the catalog's `artifactsOf`.
+   */
+  artifacts: Schema.optionalKey(Schema.Array(ArtifactRow)),
 });
 
 /** A row of `event_people`: someone's part in the event, apart from its talks. */
