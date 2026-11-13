@@ -1,6 +1,7 @@
 import { BunRuntime, BunServices } from "@effect/platform-bun";
-import { Console, DateTime, Effect } from "effect";
-import { Argument, Command } from "effect/cli";
+import { Console, DateTime, Effect, Option } from "effect";
+import { Argument, Command, Flag } from "effect/cli";
+import * as Database from "../src/database.ts";
 import {
   type Approval,
   approvals,
@@ -11,12 +12,14 @@ import {
   itemsOf,
   letterBudget,
   letterFindings,
+  type LetterFinding,
   letterWords,
   plainText,
   proseParts,
   repeatsOfEdits,
   sectionOrder,
   sectionTitles,
+  sourceFindings,
   sourceUrl,
   wordBudget,
   wordCount,
@@ -29,16 +32,22 @@ import { sfDay } from "../src/readiness/calendar.ts";
  *
  *   bun run letter list
  *   bun run letter show <yyyy-mm>
- *   bun run letter approve <yyyy-mm> <token>
+ *   bun run letter approve <yyyy-mm> --dry-run | --approve <token>
  *
  * list prints every issue, with whether it is a draft or approved. show
  * prints one as it reads, its words against each budget, every rule it
- * breaks, Erik's edits to it so far, and its approval token. approve
- * records Erik's y in core/letters/approvals.json, for the token show
- * printed: if the issue changed since, the token doesn't match and nothing
- * is written. Run approve only on Erik's own y for that token.
+ * breaks and Erik's edits to it so far; it reads no database.
  *
- * Nothing here reaches a database or sends anything.
+ * approve --dry-run prints the same, with its evenings and talks checked
+ * against the database (src/letter.ts, sourceFindings), and the approval
+ * token of exactly what it printed; it writes nothing. approve --approve
+ * <token> records Erik's y in core/letters/approvals.json for that token:
+ * if the issue breaks a rule or changed since, nothing is written. Run it
+ * only on Erik's own y for that token.
+ *
+ * DATABASE_URL comes from the environment only; .env files are not read.
+ * approve only reads: production's read-only site_reader role is enough.
+ * Nothing here sends anything.
  */
 
 const monthArgument = Argument.String("month").pipe(
@@ -111,11 +120,10 @@ function reading(issue: Issue): string {
   return lines.join("\n");
 }
 
-const show = Command.make("show", { month: monthArgument }, ({ month }) =>
+/** Prints `issue` as it reads, the rules it breaks, Erik's edits and every link it makes. */
+const print = (issue: Issue, findings: ReadonlyArray<LetterFinding>) =>
   Effect.gen(function* () {
-    const issue = yield* findIssue(month);
     yield* Console.log(reading(issue));
-    const findings = [...letterFindings(issue), ...repeatsOfEdits(issue)];
     yield* Console.log(
       findings.length === 0
         ? "It breaks no rule."
@@ -126,12 +134,11 @@ const show = Command.make("show", { month: monthArgument }, ({ month }) =>
             ),
           ].join("\n"),
     );
-    const edits = editsOf(month);
+    const edits = editsOf(issue.month);
     yield* Console.log(
       `Erik's edits so far: ${edits.cut} cut, ${edits.reword} reworded, ${edits.fact} on facts.`,
     );
     yield* Console.log(`It's ${yield* stateOf(issue)}.`);
-    yield* Console.log(`Approval token: ${yield* issueToken(issue)}`);
     // Every link it makes, so a reader can open each before saying y.
     const links = [
       ...itemsOf(issue).flatMap(({ item }) => [
@@ -141,10 +148,25 @@ const show = Command.make("show", { month: monthArgument }, ({ month }) =>
       ...(issue.closing === undefined ? [] : hrefs(issue.closing)),
     ];
     yield* Console.log(["Links:", ...new Set(links)].join("\n  "));
+  });
+
+/** The rules `issue` breaks that need no database. */
+const offlineFindings = (issue: Issue) => [
+  ...letterFindings(issue),
+  ...repeatsOfEdits(issue),
+];
+
+const show = Command.make("show", { month: monthArgument }, ({ month }) =>
+  Effect.gen(function* () {
+    const issue = yield* findIssue(month);
+    yield* print(issue, offlineFindings(issue));
+    yield* Console.log(
+      `To check its evenings and talks and get its approval token: bun run letter approve ${month} --dry-run`,
+    );
   }),
 ).pipe(
   Command.withDescription(
-    "Print an issue as it reads, its word counts, the rules it breaks and its approval token.",
+    "Print an issue as it reads, its word counts and the rules it breaks. Reads no database.",
   ),
 );
 
@@ -152,44 +174,72 @@ const approve = Command.make(
   "approve",
   {
     month: monthArgument,
-    token: Argument.String("token").pipe(
-      Argument.withDescription("The approval token show printed."),
+    dryRun: Flag.Boolean("dry-run").pipe(
+      Flag.withDescription(
+        "Print the issue, every rule it breaks (its evenings and talks checked against the database) and its approval token; write nothing.",
+      ),
+      Flag.withDefault(false),
+    ),
+    approve: Flag.String("approve").pipe(
+      Flag.withDescription(
+        "The token --dry-run printed, on Erik's y for it: record his approval of exactly that issue, or refuse if it changed since.",
+      ),
+      Flag.optional,
     ),
   },
-  ({ month, token }) =>
+  (options) =>
     Effect.gen(function* () {
-      const issue = yield* findIssue(month);
-      const findings = [...letterFindings(issue), ...repeatsOfEdits(issue)];
-      if (findings.length > 0) {
-        yield* Effect.fail(
+      if (options.dryRun === Option.isSome(options.approve)) {
+        return yield* Effect.fail(
           new Error(
-            `${month} breaks ${findings.length} rule(s): bun run letter show ${month}.`,
+            "Give --dry-run to read the issue and its token, or --approve <token> to record Erik's y for exactly that.",
           ),
         );
       }
-      if ((yield* issueToken(issue)) !== token) {
-        yield* Effect.fail(
+      const issue = yield* findIssue(options.month);
+      const findings = [
+        ...offlineFindings(issue),
+        ...(yield* sourceFindings(issue)),
+      ];
+      const token = yield* issueToken(issue);
+      if (Option.isNone(options.approve)) {
+        yield* print(issue, findings);
+        return yield* Console.log(
+          findings.length === 0
+            ? `Approval token: ${token}`
+            : "No approval token until it breaks no rule.",
+        );
+      }
+      if (findings.length > 0) {
+        return yield* Effect.fail(
           new Error(
-            `${month} changed since that token was printed: show it again and read it again.`,
+            `${options.month} breaks ${findings.length} rule(s): bun run letter approve ${options.month} --dry-run.`,
+          ),
+        );
+      }
+      if (token !== options.approve.value) {
+        return yield* Effect.fail(
+          new Error(
+            `${options.month} changed since that token was printed: run --dry-run and read it again.`,
           ),
         );
       }
       const on = sfDay(yield* DateTime.now);
-      const kept = approvals.filter((each) => each.month !== month);
-      const next = [...kept, { month, on, token }].toSorted((a, b) =>
-        a.month.localeCompare(b.month),
+      const kept = approvals.filter((each) => each.month !== options.month);
+      const next = [...kept, { month: options.month, on, token }].toSorted(
+        (a, b) => a.month.localeCompare(b.month),
       );
       const file = new URL("../letters/approvals.json", import.meta.url);
       yield* Effect.promise(() =>
         Bun.write(file, `${JSON.stringify({ approvals: next }, null, 2)}\n`),
       );
-      yield* Console.log(
-        `Approved ${month} on ${on}: commit core/letters/approvals.json to publish it.`,
+      return yield* Console.log(
+        `Approved ${options.month} on ${on}: commit core/letters/approvals.json to publish it.`,
       );
-    }),
+    }).pipe(Effect.provide(Database.scriptLayer)),
 ).pipe(
   Command.withDescription(
-    "Record Erik's y on an issue, for exactly the version its token names.",
+    "Check an issue against the database and print its approval token (--dry-run), or record Erik's y for exactly that version (--approve <token>).",
   ),
 );
 

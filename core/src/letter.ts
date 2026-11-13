@@ -1,8 +1,11 @@
 import { Effect, Schema } from "effect";
+import { SqlClient } from "effect/sql/SqlClient";
 import approvalsFile from "../letters/approvals.json" with { type: "json" };
 import corpusFile from "../letters/before-after.json" with { type: "json" };
 import { issueFiles } from "../letters/index.ts";
 import { approvalToken, isApprovalToken } from "./approval.ts";
+import { ahead, ours, published } from "./catalog.ts";
+import { asOf } from "./clock.ts";
 import { HttpUrl } from "./contract.ts";
 import { guideEntries } from "./guide.ts";
 import { isShortSlug } from "./short-slugs.ts";
@@ -316,14 +319,18 @@ export function letterFindings(issue: Issue): ReadonlyArray<LetterFinding> {
       : [{ where: "closing", text: issue.closing }]),
   ];
 
-  // Our voice, word for word.
-  for (const { where, text } of [
+  // Every word a reader reads: the prose and the items' names. A name is
+  // never an opener, so the opening rules read `prose` alone.
+  const everything = [
     ...prose,
     ...itemsOf(issue).map(({ key, item: each }) => ({
       where: `${key}: ${each.name}`,
       text: each.name,
     })),
-  ]) {
+  ];
+
+  // Our voice, word for word.
+  for (const { where, text } of everything) {
     for (const { why, said } of voiceFindings(plainText(text))) {
       findings.push({ where, why, said });
     }
@@ -385,7 +392,7 @@ export function letterFindings(issue: Issue): ReadonlyArray<LetterFinding> {
   }
 
   // One question at most.
-  const questions = prose.flatMap(({ where, text }) =>
+  const questions = everything.flatMap(({ where, text }) =>
     [...plainText(text).matchAll(/\?/g)].map(() => where),
   );
   if (questions.length > mostQuestions) {
@@ -421,7 +428,7 @@ export function letterFindings(issue: Issue): ReadonlyArray<LetterFinding> {
   }
 
   // Links: https, written as words, and to what the issue names or this site.
-  for (const { where, text } of prose) {
+  for (const { where, text } of everything) {
     for (const part of proseParts(text)) {
       if ("href" in part) {
         if (!part.href.startsWith("https://")) {
@@ -452,6 +459,63 @@ export function letterFindings(issue: Issue): ReadonlyArray<LetterFinding> {
 
   return findings;
 }
+
+/**
+ * Each item of `issue` naming an evening or a talk the site doesn't
+ * publish as named: an evening no published evening has as its short link;
+ * in our next evenings, one that isn't ours or is already over; a talk not
+ * given at the evening it names. It reads the database, so it isn't in
+ * `letterFindings`: `bun run letter approve` runs it, and refuses an issue
+ * with any, before Erik is asked for his y.
+ */
+export const sourceFindings = (issue: Issue) =>
+  Effect.gen(function* () {
+    const sql = yield* SqlClient;
+    const now = yield* asOf;
+    const findings: LetterFinding[] = [];
+    for (const { key, item: each } of itemsOf(issue)) {
+      const { source } = each;
+      if (source._tag !== "event" && source._tag !== "talk") continue;
+      const where = `${key}: ${each.name}`;
+      const slug = source._tag === "event" ? source.slug : source.event;
+      const [evening] = yield* sql<{
+        readonly id: string;
+        readonly ours: boolean;
+        readonly ahead: boolean;
+      }>`
+        SELECT e.id, ${ours(sql, "e")} AS ours, ${ahead(sql, "e", now)} AS ahead
+        FROM events e
+        WHERE ${published(sql, "e")} AND e.short_slug = ${slug}`;
+      if (evening === undefined) {
+        findings.push({
+          where,
+          why: "names an evening no published evening has as its short link",
+          said: slug,
+        });
+        continue;
+      }
+      if (key === "evenings" && !(evening.ours && evening.ahead)) {
+        findings.push({
+          where,
+          why: "our next evenings: an evening of ours, not yet over",
+          said: slug,
+        });
+      }
+      if (source._tag === "talk") {
+        const given = yield* sql`
+          SELECT 1 FROM event_talks et
+          WHERE et.event_id = ${evening.id} AND et.talk_id = ${source.id}`;
+        if (given.length === 0) {
+          findings.push({
+            where,
+            why: "names a talk not given at the evening it names",
+            said: source.id,
+          });
+        }
+      }
+    }
+    return findings;
+  });
 
 /** The words a reader reads in `issue`: its title, names, paragraphs and closing. */
 export function letterWords(issue: Issue): number {
@@ -492,8 +556,17 @@ export const ApprovalsFile = Schema.Struct({
 export const approvals: ReadonlyArray<Approval> =
   Schema.decodeUnknownSync(ApprovalsFile)(approvalsFile).approvals;
 
-/** The approval token of `issue`, exactly as written: what Erik's y names. */
-export const issueToken = (issue: Issue) => approvalToken(issue);
+/**
+ * The approval token of `issue` as Erik reads it: its words exactly as
+ * written, and where each item's name links. A guide entry's site is read
+ * from the guide, so a new address there changes the token too, and the
+ * issue is a draft until he reads it again.
+ */
+export const issueToken = (issue: Issue) =>
+  approvalToken({
+    issue,
+    links: itemsOf(issue).map(({ item: each }) => sourceUrl(each.source)),
+  });
 
 /** An issue Erik approved, as it is published. */
 export interface Letter extends Issue {

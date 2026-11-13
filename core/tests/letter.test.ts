@@ -1,6 +1,7 @@
-import { describe, expect, test } from "bun:test";
-import { Effect, Schema } from "effect";
+import { afterAll, describe, expect, test } from "bun:test";
+import { Effect, Layer, Schema } from "effect";
 import { issueFiles } from "../letters/index.ts";
+import { approvalToken } from "../src/approval.ts";
 import { guideEntries } from "../src/guide.ts";
 import {
   approvals,
@@ -19,11 +20,13 @@ import {
   publishedLetters,
   publishedOf,
   repeatsOfEdits,
+  sourceFindings,
   sourceUrl,
   wordBudget,
   wordCount,
 } from "../src/letter.ts";
 import { voiceFindings } from "../src/voice.ts";
+import { clockLayer, seededDatabase, sqlLayer } from "./support/database.ts";
 
 /**
  * The allthings letter (src/letter.ts): its rules, each with an issue that
@@ -254,6 +257,20 @@ describe("the letter's rules", () => {
       why({ ...good, closing: "Who is coming? Who is bringing a friend?" }),
     ).toEqual(["2 questions: ask 1 at most"]);
     expect(why({ ...good, closing: "Who is coming?" })).toEqual([]);
+    // A name is read too: a question there counts.
+    const hiring = {
+      name: "Who is hiring?",
+      text: "A paragraph.",
+      source: { _tag: "link" as const, url: "https://example.com/jobs" },
+    };
+    expect(why({ ...good, closing: "Who is coming?", jobs: [hiring] })).toEqual(
+      ["2 questions: ask 1 at most"],
+    );
+    // A name is never an opener, though: one opening a section is fine.
+    const { happenings: _, ...rest } = good;
+    expect(
+      why({ ...rest, jobs: [{ ...hiring, name: "This month's roles" }] }),
+    ).toEqual([]);
   });
 
   test("no greeting, and no calendar for an opener", () => {
@@ -355,6 +372,16 @@ describe("prose", () => {
 });
 
 describe("approval", () => {
+  test("covers the words as written and where each name links", async () => {
+    const links = itemsOf(good).map(({ item }) => sourceUrl(item.source));
+    expect(await Effect.runPromise(issueToken(good))).toBe(
+      await Effect.runPromise(approvalToken({ issue: good, links })),
+    );
+    expect(await Effect.runPromise(issueToken(good))).not.toBe(
+      await Effect.runPromise(approvalToken(good)),
+    );
+  });
+
   test("publishes an issue only as Erik read it, newest first", async () => {
     const later: Issue = { ...good, month: "2027-01" };
     const token = await Effect.runPromise(issueToken(good));
@@ -496,5 +523,79 @@ describe("every issue in core/letters/", () => {
     expect(published.map((letter) => letter.month).toSorted()).toEqual(
       approvals.map((each) => each.month).toSorted(),
     );
+  });
+});
+
+const db = await seededDatabase();
+afterAll(() => db.close());
+await db.exec(`
+  INSERT INTO event_slugs (slug, event_id) VALUES
+    ('acme', 'e0000000-0000-4000-8000-000000000001'),
+    ('draft', 'e0000000-0000-4000-8000-000000000002'),
+    ('soon', 'e0000000-0000-4000-8000-000000000004');
+  UPDATE events SET short_slug = 'acme' WHERE id = 'e0000000-0000-4000-8000-000000000001';
+  UPDATE events SET short_slug = 'draft' WHERE id = 'e0000000-0000-4000-8000-000000000002';
+  UPDATE events SET short_slug = 'soon' WHERE id = 'e0000000-0000-4000-8000-000000000004';
+`);
+
+describe("an issue's evenings and talks, against the database", () => {
+  const check = (issue: Issue) =>
+    Effect.runPromise(
+      sourceFindings(issue).pipe(
+        Effect.provide(Layer.merge(sqlLayer(db), clockLayer)),
+      ),
+    ).then((found) =>
+      found.map((each) => ({ why: each.why, said: each.said })),
+    );
+  const evening = (slug: string) => ({
+    name: "An evening",
+    text: "A paragraph.",
+    source: { _tag: "event" as const, slug },
+  });
+  const talk = (id: string, event: string) => ({
+    name: "A talk",
+    text: "A paragraph.",
+    source: {
+      _tag: "talk" as const,
+      id: `a0000000-0000-4000-8000-${id}`,
+      event,
+    },
+  });
+
+  test("takes a published evening of ours ahead, and a talk given at its evening", async () => {
+    expect(
+      await check({
+        ...good,
+        evenings: [evening("soon")],
+        papers: [talk("000000000001", "acme")],
+      }),
+    ).toEqual([]);
+  });
+
+  test("refuses a draft, a link no evening has, one over, and a talk from elsewhere", async () => {
+    expect(
+      await check({
+        ...good,
+        evenings: [evening("draft"), evening("nowhere"), evening("acme")],
+        papers: [talk("000000000005", "acme")],
+      }),
+    ).toEqual([
+      {
+        why: "names an evening no published evening has as its short link",
+        said: "draft",
+      },
+      {
+        why: "names an evening no published evening has as its short link",
+        said: "nowhere",
+      },
+      {
+        why: "our next evenings: an evening of ours, not yet over",
+        said: "acme",
+      },
+      {
+        why: "names a talk not given at the evening it names",
+        said: "a0000000-0000-4000-8000-000000000005",
+      },
+    ]);
   });
 });

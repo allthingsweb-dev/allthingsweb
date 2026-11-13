@@ -924,12 +924,21 @@ https, written as words, to what the issue names or a page of this site.
 An issue is published (its page, the API, the MCP server, the sitemap)
 only once `core/letters/approvals.json` holds Erik's y with the approval
 token of exactly what he read (`src/approval.ts`); change a word and it is
-a draft again. `publishedLetters` is the only way a surface reads them.
+a draft again; so does a new address for a guide entry it names, since
+the token covers where each item links. `publishedLetters` is the only way
+a surface reads them.
+
+Before Erik reads an issue, `approve --dry-run` checks its evenings and
+talks against the database (`sourceFindings`): each evening a published
+one at that short link, ours and not yet over in our next evenings, and
+each talk given at the evening it names. It prints the token only when the
+issue breaks no rule, and `--approve` refuses one that does.
 
 ```sh
-bun run letter list                     # every issue, draft or approved
-bun run letter show 2026-12             # as it reads, its budgets, findings and token
-bun run letter approve 2026-12 <token>  # only on Erik's y for that token
+bun run letter list            # every issue, draft or approved
+bun run letter show 2026-12    # as it reads, its budgets and findings; no database
+DATABASE_URL=$(op read "op://allthings/allthings site_reader/credential") bun run letter approve 2026-12 --dry-run
+DATABASE_URL=$(op read "op://allthings/allthings site_reader/credential") bun run letter approve 2026-12 --approve <token>   # only on Erik's y for that token
 ```
 
 Erik's edits to a draft become rules in `src/letter.ts` or `src/voice.ts`
