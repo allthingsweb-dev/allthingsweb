@@ -9,6 +9,7 @@ import { gatheringTitle } from "./metadata.tsx";
 import type { ImageMode } from "./picture.tsx";
 import type { Theme } from "./theme.ts";
 import { simpleDate, year } from "./time.ts";
+import { proposePath } from "./propose.tsx";
 
 /**
  * /talks: every talk given at our evenings, latest evening first and each
@@ -145,6 +146,11 @@ export function talksPage({
               {`${count(talks.length, "talk", "talks")} at ${count(evenings, "evening", "evenings")}`}
             </p>
           )}
+          <p class="fact-links">
+            <a href={proposePath}>
+              propose a talk <span aria-hidden="true">→</span>
+            </a>
+          </p>
         </div>
         <div class="evenings-lists">
           {talksByYear(talks).map(({ year: when, talks: inYear }) => (

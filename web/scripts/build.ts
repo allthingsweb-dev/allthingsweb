@@ -563,6 +563,7 @@ export interface OgCards {
   readonly codeOfConduct: Image;
   readonly privacy: Image;
   readonly coach: Image;
+  readonly propose: Image;
   readonly brand: Image;
   readonly notFound: Image;
   /** An event card's grounds, which the Worker sets its words on. */
@@ -661,6 +662,7 @@ async function buildOg(): Promise<{
       codeOfConduct: await mark("og-code-of-conduct.png", og),
       privacy: await mark("og-privacy.png", og),
       coach: await mark("og-coach.png", og),
+      propose: await mark("og-propose.png", og),
       brand: await mark("og-brand.png", og),
       notFound: await mark("og-not-found.png", og),
       eventNight: await mark("og-event-night.png", og),

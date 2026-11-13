@@ -806,7 +806,8 @@ describe("static assets", () => {
 
 describe("every kind of page", () => {
   /** One of each: home, the index, evenings of every kind, people, about,
-   * the brand, the code of conduct, privacy, coaching, a page that isn't, and one that is gone. */
+   * the brand, the code of conduct, privacy, coaching, proposing a talk, a
+   * page that isn't, and one that is gone. */
   const paths = [
     "/",
     "/events",
@@ -826,6 +827,7 @@ describe("every kind of page", () => {
     "/code-of-conduct",
     "/privacy",
     "/coach",
+    "/propose",
     "/no-such-page",
     "/logos/logo-1.91x1.png",
   ];

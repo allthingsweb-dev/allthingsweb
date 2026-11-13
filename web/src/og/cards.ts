@@ -43,6 +43,10 @@ export const ogCards = {
     cards.coach,
     "coach · allthings/_ · What a good talk looks like on our stage, and how to check yours.",
   ),
+  propose: card(
+    cards.propose,
+    "propose a talk · allthings/_ · Anyone may propose a talk for an evening. We pick the ones people will still talk about.",
+  ),
   brand: card(
     cards.brand,
     "allthings/brand · The rules every page, cover and line of copy is checked against.",

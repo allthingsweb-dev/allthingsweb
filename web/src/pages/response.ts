@@ -10,7 +10,7 @@ import { contentEncoding } from "./encoding.ts";
 import type { ImageMode } from "./picture.tsx";
 import type { Theme } from "./theme.ts";
 
-const policy = (imgSrc: string, scripts = false) =>
+const policy = (imgSrc: string, scripts = false, form = false) =>
   [
     "default-src 'none'",
     ...(scripts ? ["script-src 'self'"] : []),
@@ -18,7 +18,7 @@ const policy = (imgSrc: string, scripts = false) =>
     "font-src 'self'",
     `img-src ${imgSrc}`,
     "base-uri 'none'",
-    "form-action 'none'",
+    form ? "form-action 'self'" : "form-action 'none'",
     "frame-ancestors 'none'",
   ].join("; ");
 
@@ -51,6 +51,15 @@ export const scriptedContentSecurityPolicy: Readonly<
   originals: policy(`'self' ${mediaOrigin}`, true),
 };
 
+/**
+ * The policy of a page with a form: /propose (pages/propose.tsx), which
+ * posts to this site and nowhere else, and still runs no script.
+ */
+export const formContentSecurityPolicy: Readonly<Record<ImageMode, string>> = {
+  variants: policy("'self'", false, true),
+  originals: policy(`'self' ${mediaOrigin}`, false, true),
+};
+
 const headers = {
   "referrer-policy": "strict-origin-when-cross-origin",
   "x-content-type-options": "nosniff",
@@ -72,6 +81,8 @@ export interface HtmlOptions {
   readonly status?: number;
   /** It loads this site's scripts (see scriptedContentSecurityPolicy). */
   readonly scripts?: boolean;
+  /** It has a form that posts to this site (see formContentSecurityPolicy). */
+  readonly form?: boolean;
   /**
    * How long reading its data took, in milliseconds, for Server-Timing.
    * Rendering is CPU alone, which workerd's clock doesn't count (it moves
@@ -94,6 +105,7 @@ export function htmlResponse(
     status = 200,
     db,
     scripts = false,
+    form = false,
   }: HtmlOptions,
 ): HttpServerResponse.HttpServerResponse {
   const encoding = contentEncoding(acceptEncoding);
@@ -113,7 +125,9 @@ export function htmlResponse(
       ...headers,
       "content-security-policy": (scripts
         ? scriptedContentSecurityPolicy
-        : contentSecurityPolicy)[images],
+        : form
+          ? formContentSecurityPolicy
+          : contentSecurityPolicy)[images],
       "cache-control":
         theme === undefined
           ? CacheControl[cacheControl]

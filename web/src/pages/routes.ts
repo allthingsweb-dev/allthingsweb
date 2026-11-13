@@ -48,6 +48,21 @@ import { calendarFile, calendarFileName } from "./calendar.ts";
 import { codeOfConductPage, codeOfConductPath } from "./code-of-conduct.tsx";
 import { privacyPage, privacyPath } from "./privacy.tsx";
 import { coachPage, coachPath } from "./coach.tsx";
+import {
+  proposePage,
+  proposePath,
+  type ProposeProps,
+  trapField,
+} from "./propose.tsx";
+import { readForm, sameOrigin } from "../preview/forms.ts";
+import {
+  boundedBody,
+  clientOf,
+  type Outcome,
+  outcomeMessages,
+  takeProposal,
+} from "../proposals.ts";
+import type { ProposalField } from "allthings-core/src/proposals.ts";
 import { talksPage } from "./talks.tsx";
 import { guidePage } from "./guide.tsx";
 import { yearPage } from "./year.tsx";
@@ -824,6 +839,153 @@ const coach = page(coachPath, ({ theme, acceptEncoding, images }) =>
 );
 
 /**
+ * /propose, the empty form: it changes only when the Worker is deployed,
+ * but for the hosts' portraits in its footer; it is cached as a page, as
+ * /brand is. Its policy lets its form post to this site.
+ */
+const propose = page(proposePath, ({ theme, acceptEncoding, images }) =>
+  Effect.gen(function* () {
+    const { origin } = yield* Site;
+    const { portraits, read } = yield* footer(
+      hostPortraits.pipe(Effect.provide(repositories)),
+    );
+    return htmlResponse(
+      proposePage({ origin, theme, portraits, images }),
+      acceptEncoding,
+      { cacheControl: read ? "page" : "failure", theme, images, form: true },
+    );
+  }),
+);
+
+/** The most a proposal's form may be, URL-encoded, in bytes: every field at its longest, in any script. */
+export const proposeFormLimit = 65_536;
+
+/** Each outcome's status, as the API answers it (v1/proposals.ts). */
+const proposeStatus: Readonly<Record<Outcome["_tag"], number>> = {
+  Kept: 200,
+  Invalid: 422,
+  Limited: 429,
+  Full: 429,
+  Closed: 503,
+  Unavailable: 503,
+};
+
+/** The fields the form sends, as text. */
+const formFields: ReadonlyArray<ProposalField> = [
+  "title",
+  "format",
+  "abstract",
+  "name",
+  "email",
+  "about",
+  "links",
+  "notes",
+];
+
+/**
+ * POST /propose: the form, sent without a script. Only from this site's
+ * own page (forms.ts's sameOrigin), URL-encoded and at most
+ * {@link proposeFormLimit} bytes. A form with its trap filled is a
+ * script's: thanked, and kept nowhere. Every other is handed to
+ * takeProposal as the site's, links one a line; the answer is the page
+ * again, never stored: thanks, or the form as it was sent with each
+ * problem beside its field.
+ */
+const proposeForm = HttpRouter.add(
+  "POST",
+  proposePath,
+  Effect.gen(function* () {
+    const { origin } = yield* Site;
+    const incoming = yield* HttpServerRequest.HttpServerRequest;
+    const theme = themeOf(incoming.cookies);
+    const acceptEncoding = incoming.headers["accept-encoding"];
+    const images: ImageMode = Option.isSome(yield* Images)
+      ? "variants"
+      : "originals";
+    const request = yield* HttpServerRequest.toWeb(incoming);
+    const { portraits } = yield* footer(
+      hostPortraits.pipe(Effect.provide(repositories)),
+    );
+    const answer = (
+      status: number,
+      props: Pick<ProposeProps, "values" | "problems" | "notice">,
+    ) =>
+      htmlResponse(
+        proposePage({ origin, theme, portraits, images, ...props }),
+        acceptEncoding,
+        { cacheControl: "failure", theme, images, form: true, status },
+      );
+    if (!sameOrigin(request)) {
+      yield* Effect.promise(() => boundedBody(request, proposeFormLimit));
+      return answer(403, {
+        notice: {
+          kind: "problem",
+          text: "This form is sent from allthings.dev's own page. Open it there and send it again.",
+        },
+      });
+    }
+    const body = yield* Effect.promise(() =>
+      readForm(request, proposeFormLimit),
+    );
+    if (!body.ok) {
+      // A refused body is read off, so the connection stays usable.
+      if (!request.bodyUsed) {
+        yield* Effect.promise(() => boundedBody(request, proposeFormLimit));
+      }
+      return answer(body.status, {
+        notice: { kind: "problem", text: body.reason },
+      });
+    }
+    const values: Partial<Record<ProposalField, string>> = {};
+    for (const field of formFields) {
+      const value = body.fields[field];
+      if (value !== undefined) values[field] = value;
+    }
+    if ((body.fields[trapField] ?? "") !== "") {
+      return answer(200, {
+        notice: { kind: "sent", text: outcomeMessages.Kept },
+      });
+    }
+    const outcome = yield* takeProposal(
+      {
+        ...values,
+        links: (values.links ?? "")
+          .split(/\r?\n/)
+          .map((link) => link.trim())
+          .filter((link) => link !== ""),
+      },
+      "site",
+      clientOf(request),
+    );
+    if (outcome._tag === "Kept") {
+      return answer(200, {
+        notice: { kind: "sent", text: outcomeMessages.Kept },
+      });
+    }
+    if (outcome._tag === "Invalid") {
+      const byField: Partial<Record<ProposalField, string>> = {};
+      const general: Array<string> = [];
+      for (const problem of outcome.problems) {
+        if (problem.field === "proposal") general.push(problem.message);
+        else byField[problem.field] = problem.message;
+      }
+      return answer(proposeStatus.Invalid, {
+        values,
+        problems: byField,
+        notice: {
+          kind: "problem",
+          text: [outcomeMessages.Invalid, ...general].join(" "),
+        },
+      });
+    }
+    return answer(proposeStatus[outcome._tag], {
+      values,
+      notice: { kind: "problem", text: outcomeMessages[outcome._tag] },
+    });
+  }),
+);
+
+/**
  * Where an event's routes are: at the root, and a shared evening's link
  * under shared/ (core's src/short-slugs.ts).
  */
@@ -1204,6 +1366,8 @@ export const pageRoutes = Layer.mergeAll(
   codeOfConduct,
   privacy,
   coach,
+  propose,
+  proposeForm,
   eventAt(""),
   eventAt(sharedPrefix),
   calendarAt(""),

@@ -20,6 +20,7 @@ import { Document } from "./document.tsx";
 import { gatheringTitle, siteDescription } from "./metadata.tsx";
 import { Portrait } from "./people.tsx";
 import type { ImageMode } from "./picture.tsx";
+import { proposePath } from "./propose.tsx";
 import type { Theme } from "./theme.ts";
 import { ogCards } from "../og/cards.ts";
 import { fullDate, simpleDate } from "./time.ts";
@@ -332,8 +333,8 @@ export function aboutPage({
                 room takes home, not by who gives it.
               </p>
               <p class="fact-links">
-                <a href={discord}>
-                  pitch a talk on discord <span aria-hidden="true">→</span>
+                <a href={proposePath}>
+                  propose a talk <span aria-hidden="true">→</span>
                 </a>
                 {" · "}
                 <a href={coachPath}>
