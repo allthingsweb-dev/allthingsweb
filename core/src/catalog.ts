@@ -187,6 +187,26 @@ export const peopleOrder =
   "array_position(ARRAY['organizer', 'co-host', 'mc'], ep.role), ep.position, ep.created_at, p.id";
 
 /**
+ * A talk's links (its recording, slides, code), over `a`
+ * (talk_artifacts): by position, then as added.
+ */
+export const artifactOrder = "a.position, a.created_at, a.id";
+
+/**
+ * The links of the talk aliased `t`, each as `artifact` (an expression
+ * over `a`), as a JSON array in {@link artifactOrder}. A surface puts it
+ * among a talk's fields in {@link talksOf}.
+ */
+export const artifactsOf = (
+  sql: SqlClient,
+  artifact: Statement.Fragment,
+): Statement.Fragment => sql`COALESCE((
+    SELECT json_agg(${artifact} ORDER BY ${sql.literal(artifactOrder)})
+    FROM talk_artifacts a
+    WHERE a.talk_id = t.id
+  ), '[]'::json)`;
+
+/**
  * The talks of the evening aliased `e`, as a JSON array in running order.
  * Each is a JSON object of `talk` (key, value pairs over `t` and `et`) and
  * `speakers`: each speaker as `speaker` (an expression over `p` and `ts`),

@@ -23,4 +23,5 @@ export const siteTables = [
   "profile_slugs",
   "redirects",
   "event_slugs",
+  "talk_artifacts",
 ] as const;

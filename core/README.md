@@ -33,7 +33,9 @@ statement from it.
   attached; its people, by role. `talksOf`, `hostsOf` and `peopleOf` read
   them in that order, each surface choosing the fields it publishes, and
   `talkOrder`, `speakerOrder`, `hostOrder` and `peopleOrder` are the
-  orders themselves, for a statement that joins them its own way.
+  orders themselves, for a statement that joins them its own way. A
+  talk's links (its recording, slides, code) are `artifactsOf` it, in
+  `artifactOrder`.
 - **A person's appearances:** their talks (`talkAppearances`) and their
   parts in evenings as a whole (`roleAppearances`) at published evenings,
   each scoped by whose evenings (`ours` or `any`) and when (`any`, or
@@ -205,8 +207,8 @@ backfills below.
 
 Until they have a role of their own, the backfills still need it, so only
 the maintainer runs them (`OWNER_ONLY` in the script says why): `hosts`,
-`lineups`, `programs`, `curation`, `event-extras`, `external-talks` and
-`luma:people`. They rewrite the public record from reviewed files: they
+`lineups`, `programs`, `curation`, `event-extras`, `external-talks`,
+`talk-artifacts` and `luma:people`. They rewrite the public record from reviewed files: they
 create profiles and companies, and delete talks and people's parts, which
 no role in the shared vault should be able to do. Filling profiles from a
 people file (`bun run people`) has its own role, `profile_editor`, and
@@ -460,6 +462,41 @@ DATABASE_URL=… bun run external-talks             # write it, in one transacti
 
 Applying is safe to repeat: a talk is known by its speaker, title and day,
 and one already there only takes corrected links and sources.
+
+## What talks left behind
+
+`talk_artifacts` holds a talk's links: its recording, its slides, its
+code (`repo`), its site, or something else. Each is a row, so whatever
+adds one later, the recorder in the room or a speaker sharing their
+slides, needs no new column. A link may have a `label`, and a recording
+of the whole evening has the talk's `start_seconds`. A link from the same
+talk given somewhere else says where (`elsewhere`, "Chain React 2024").
+A talk's links are shown in `position` order, and go with it if it is
+deleted.
+
+The talk's own recording, the one its title links to, is its first
+recording with no `elsewhere`, played from its start (`talkLinks` and
+`playAt` in `src/talk-artifacts.ts`). Every surface reads the links with
+the catalog's `artifactsOf` and `artifactJson`, so it is the same one
+everywhere.
+
+`backfill/talk-artifacts.json` carries links found in public sources,
+each with the page that confirms it (it names the talk, or our evening,
+and the speaker) and the day it was read. A talk's links are listed in
+the order they are shown. What only looks right is kept under `held`
+with the question for the speaker that would settle it, and never
+written. The run refuses a talk whose stored title differs, a link listed
+twice, a start on anything but a recording, and a talk that would have
+two recordings of its own.
+
+```sh
+DATABASE_URL=… bun run talk-artifacts --dry-run   # what would be written, rolled back
+DATABASE_URL=… bun run talk-artifacts             # write it, in one transaction
+```
+
+Applying is safe to repeat: a link is known by its talk and URL, and one
+already there only takes corrected details. Links the file doesn't list
+are kept.
 
 ## Hidden venues
 
