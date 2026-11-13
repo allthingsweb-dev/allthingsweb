@@ -7,10 +7,13 @@
     "fmt": "prettier --write .",
     "check": "prettier --check .",
     "typecheck": "tsc --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "shields": "bun src/write-shields.ts"
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",
+    "@types/fontkit": "2.0.9",
+    "fontkit": "2.0.4",
     "prettier": "^3.6.2",
     "typescript": "7.0.2"
   }

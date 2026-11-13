@@ -466,15 +466,21 @@ describe("MCP", () => {
       "get_year",
       "get_letter",
       "coach_talk",
+      "propose_talk",
     ]);
-    // get_guide, get_year, get_letter and coach_talk are new: the app
-    // never had them (core's contract holds the first three;
-    // web/tests/coach-tool.test.ts, coach_talk).
+    // get_guide, get_year, get_letter, coach_talk and propose_talk are new:
+    // the app never had them (core's contract holds the first three;
+    // web/tests/coach-tool.test.ts, coach_talk; web/tests/propose-tool.test.ts,
+    // propose_talk).
+    const newTools = [
+      "get_guide",
+      "get_year",
+      "get_letter",
+      "coach_talk",
+      "propose_talk",
+    ];
     const served = all.filter(
-      (tool) =>
-        !["get_guide", "get_year", "get_letter", "coach_talk"].includes(
-          String(tool["name"]),
-        ),
+      (tool) => !newTools.includes(String(tool["name"])),
     );
     // Names, titles, descriptions, annotations and input schemas, exactly,
     // but for one deliberate difference: the Worker writes the name as one
