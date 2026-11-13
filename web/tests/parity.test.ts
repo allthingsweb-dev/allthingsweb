@@ -519,6 +519,8 @@ describe("which evenings there are, and in what order", () => {
       held += page.tally.evenings;
     }
     expect(held).toBe(about.evenings);
+    // /about leads to the latest of them.
+    expect(about.latestYear).toBe(years[0]);
     // /events links exactly the years that have a page.
     expect(
       byYear(view.past)

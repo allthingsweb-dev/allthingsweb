@@ -11,6 +11,7 @@ import {
   published,
   soonestFirst,
   talkAppearances,
+  yearOf,
 } from "./catalog.ts";
 import { DataSourceError } from "./errors.ts";
 import { guestCountFloor } from "./event-page.ts";
@@ -128,6 +129,11 @@ export const tally = (
 export interface AboutView extends Tally {
   /** The first published evening, if there has been one. */
   readonly first: Evening | undefined;
+  /**
+   * The latest year one of ours was held in, in San Francisco (`yearOf`),
+   * whose page (src/year.ts) the tally leads to; none before the first.
+   */
+  readonly latestYear: number | undefined;
   /** The first evening under each former name, oldest first. */
   readonly formerNames: ReadonlyArray<{
     readonly name: FormerName;
@@ -153,6 +159,7 @@ const OrganizerRow = Schema.Struct({
 export const AboutRow = Schema.Struct({
   ...TallyFields,
   first: Schema.NullOr(Rows.Listing),
+  latestYear: Schema.NullOr(Schema.Int),
   formerNames: Schema.Array(
     Schema.Struct({
       name: Schema.Literals(formerNames),
@@ -177,6 +184,7 @@ export function toAbout(row: AboutRow, now: DateTime.Utc): AboutView {
     hostingCompanies: row.hostingCompanies,
     guests: row.guests,
     first: row.first === null ? undefined : toEvening(row.first, now),
+    latestYear: row.latestYear ?? undefined,
     formerNames: row.formerNames.map(({ name, listing }) => ({
       name,
       evening: toEvening(listing, now),
@@ -231,6 +239,7 @@ const make = Effect.gen(function* () {
           ORDER BY ${soonestFirst(sql, "e")}
           LIMIT 1
         ) AS first,
+        (SELECT max(${yearOf(sql, "e")}) FROM held e) AS "latestYear",
         COALESCE((
           SELECT json_agg(json_build_object('name', f.name, 'listing', f.listing)
             ORDER BY f.position)

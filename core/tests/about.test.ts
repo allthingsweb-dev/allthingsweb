@@ -108,6 +108,8 @@ describe("About", () => {
       const about = await Effect.runPromise(readAbout([], database));
       expect(about.formerNames).toEqual([]);
       expect(about.first?.slug).toBe("2025-12-02-café-night");
+      // React at Acme, in August 2026, is the latest one held.
+      expect(about.latestYear).toBe(2026);
       expect(about.organizers).toEqual([]);
       // Before anything has happened, there is nothing to count.
       const before = await Effect.runPromise(
@@ -119,6 +121,7 @@ describe("About", () => {
         hostingCompanies: 0,
         guests: 0,
         first: undefined,
+        latestYear: undefined,
       });
     } finally {
       await database.close();
