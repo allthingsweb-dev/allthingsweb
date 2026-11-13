@@ -363,7 +363,8 @@ const sweepText = (report: SweepReport, at: DateTime.Utc) =>
       (c) =>
         `  ${c.score} ${c.url} → ${c.outcome}\n    ${c.reasons.join(", ")}`,
     ),
-    `Found again: ${report.known.length}`,
+    `Found again (${report.known.length}):`,
+    ...report.known.map((c) => `  ${c.url} → ${c.outcome}`),
     `Waiting for review (${report.waiting.length}):`,
     ...report.waiting.map(
       (post) =>

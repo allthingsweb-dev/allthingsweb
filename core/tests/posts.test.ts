@@ -504,13 +504,16 @@ describe("postUrlsIn", () => {
           "https://twitter.com/someone/status/2105474023287341382/photo/1",
           `(seen at ${blueskyUrl}).`,
           "https://bsky.app/profile/AndreLandgraf.com/post/3lp5q7rcqnk2v",
-          "https://allthings.dev/aie",
+          "https://allthings.dev/aie https://www.linkedin.com/feed/update/%ZZ",
           "# https://x.com/i/status/9",
         ].join("\n"),
       ),
     ).toEqual({
       urls: [`${xUrl}?s=20`, blueskyUrl],
-      ignored: ["https://allthings.dev/aie"],
+      ignored: [
+        "https://allthings.dev/aie",
+        "https://www.linkedin.com/feed/update/%ZZ",
+      ],
     });
   });
 });
