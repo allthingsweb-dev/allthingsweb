@@ -45,6 +45,13 @@ export const guidePath = "/guide";
  */
 export const yearPath = (year: number): `/${string}` => `/year/${year}`;
 
+/** The allthings letter's archive: every issue Erik approved (pages/letter.tsx). */
+export const letterPath = "/letter";
+
+/** One issue of the letter, by its month: /letter/2026-12. */
+export const issuePath = (month: string): `/${string}` =>
+  `${letterPath}/${month}`;
+
 /** What allthings is, where it came from and who organizes it. */
 export const aboutPath = "/about";
 

@@ -175,6 +175,7 @@ describe("the sitemap", () => {
       { loc: "https://allthings.dev/code-of-conduct" },
       { loc: "https://allthings.dev/privacy" },
       { loc: "https://allthings.dev/coach" },
+      { loc: "https://allthings.dev/letter" },
       { loc: "https://allthings.dev/brand" },
       {
         loc: "https://allthings.dev/2026-11-05-all-things-effect",
@@ -201,6 +202,7 @@ describe("the sitemap", () => {
       "https://allthings.dev/code-of-conduct",
       "https://allthings.dev/privacy",
       "https://allthings.dev/coach",
+      "https://allthings.dev/letter",
       "https://allthings.dev/brand",
     ]);
   });

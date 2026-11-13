@@ -47,6 +47,10 @@ export const ogCards = {
     cards.propose,
     "propose a talk · allthings/_ · Anyone may propose a talk for an evening. We pick the ones people will still talk about.",
   ),
+  letter: card(
+    cards.letter,
+    "the letter · allthings/_ · One letter a month: our next evenings, and what's worth your time beyond them.",
+  ),
   brand: card(
     cards.brand,
     "allthings/brand · The rules every page, cover and line of copy is checked against.",
