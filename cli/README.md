@@ -53,7 +53,7 @@ The files are read only to send them; `coach_talk` keeps none of what it is sent
 ## Agents
 
 ```sh
-allthings mcp                       # a line to add allthings to Claude Code, Codex, VS Code or Cursor
+allthings mcp                       # a line to add allthings to Claude Code, Codex, Grok Build, VS Code or Cursor
 ```
 
 It prints the server's URL, its tools and a line for each agent, for example `claude mcp add --transport http allthings https://allthings.dev/mcp`. It reads nothing, so it works offline. With `ALLTHINGS_MCP_URL` set, the lines name that server instead. `allthings mcp --json` gives `{ name, url, transport, tools }`. An agent with a shell can also just run this CLI with `--json`.

@@ -154,6 +154,9 @@ describe("allthings", () => {
       "codex mcp add allthings --url https://allthings.dev/mcp",
     );
     expect(stdout).toContain(
+      "grok mcp add allthings https://allthings.dev/mcp",
+    );
+    expect(stdout).toContain(
       `code --add-mcp '{"name":"allthings","type":"http","url":"https://allthings.dev/mcp"}'`,
     );
     expect(stdout).toContain(
