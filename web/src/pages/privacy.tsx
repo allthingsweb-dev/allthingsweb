@@ -12,10 +12,10 @@ import { simpleDate } from "./time.ts";
  * sentence states what the code does: web-analytics.ts (the beacon),
  * metrics.ts (the anonymous counts), pages/theme.ts (the one cookie),
  * core's src/luma/api.ts (guest counts, never the list), the people
- * pipeline (core's README, "Filling in profiles"; docs/now.md) and
+ * pipeline (core's README, "Filling in profiles"; docs/now.md),
  * mcp/endpoint.ts (answers kept by the question, not the asker; never
- * coach_talk's). Change the page, and `updated`, when any of those
- * changes.
+ * coach_talk's) and proposals.ts (what a proposal keeps, and the rate
+ * limit). Change the page, and `updated`, when any of those changes.
  */
 
 export interface PrivacyProps {
@@ -108,6 +108,16 @@ export function privacyPage({
           <p>
             Hosts and speakers we invite to help plan an evening sign in with
             their email, through Cloudflare Access, to see that evening's draft.
+          </p>
+          <h2 id="proposals">Proposing a talk</h2>
+          <p>
+            A talk you propose keeps what you send: the talk, your name, your
+            email, the lines about you, your links and your notes, and where you
+            sent it from. Only the organizers read it, to decide and to write
+            back to you, and nothing about it shows on the site unless you give
+            the talk. The site never shows it back, even to you. To stop floods,
+            it counts how many proposals each address sends a minute, at
+            Cloudflare, and keeps no address.
           </p>
           <h2 id="people">People on the site</h2>
           <p>
