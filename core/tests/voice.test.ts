@@ -168,13 +168,13 @@ describe("our voice", () => {
       ),
     ).toEqual([]);
     expect(voiceFindings(`${words(30)}. 2026 ${words(30)}.`)).toEqual([]);
-    expect(voiceFindings(`${words(30)}.\nhttps://allthings.dev/talks`)).toEqual(
+    expect(voiceFindings(`${words(40)}.\nhttps://allthings.dev/talks`)).toEqual(
       [],
     );
     const link = `[${words(11)}](https://allthings.dev/talks)`;
     expect(voiceFindings(`${words(30)}.\n${link}`)).toEqual([]);
     expect(
-      voiceFindings(`${words(30)}.\n<https://allthings.dev/talks>`),
+      voiceFindings(`${words(40)}.\n<https://allthings.dev/talks>`),
     ).toEqual([]);
   });
 });
