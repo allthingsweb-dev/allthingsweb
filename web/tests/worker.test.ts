@@ -150,7 +150,7 @@ const sinceTheApp = ["curation", "organizer"];
 
 /** Where an event's page is: the contract names allthings.dev, the legacy app its own host. */
 const eventPage = {
-  contract: "Event page on allthings.dev.",
+  contract: "Event page on allthings.dev, at its short link when it has one.",
   app: "Event page on allthingsweb.dev.",
 };
 

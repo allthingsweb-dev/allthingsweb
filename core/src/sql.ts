@@ -48,8 +48,9 @@ export const curationJson = (
 /**
  * Where the event aliased `alias` is on this site: its short link
  * (allthings.dev/effect, src/short-slugs.ts), or its long slug until it has
- * one. Pages link and redirect to it; the v1 API and the MCP tools keep the
- * long slug, as the app publishes it.
+ * one. Pages redirect to it, and every link to an event's page goes to it,
+ * the MCP tools' `url` and `eventUrl` among them. The v1 API's and the MCP
+ * tools' `slug` stays the long slug, as the app publishes it.
  */
 export const siteSlug = (alias: "e" | "ev"): string =>
   `COALESCE(${alias}.short_slug, ${alias}.slug)`;

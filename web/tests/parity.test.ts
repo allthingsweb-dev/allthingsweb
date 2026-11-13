@@ -2,6 +2,7 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
 import { About } from "allthings-core/src/about.ts";
 import type * as Contract from "allthings-core/src/contract.ts";
+import { eventUrl } from "allthings-core/src/mappers.ts";
 import { Evenings, type EveningsView } from "allthings-core/src/evenings.ts";
 import { EventPages } from "allthings-core/src/event-page.ts";
 import { Home, type HomeView } from "allthings-core/src/home.ts";
@@ -159,6 +160,7 @@ interface ToolResult {
 
 interface Summary {
   readonly slug: string;
+  readonly url: string;
   readonly status: Contract.EventStatus;
   readonly curation: "ours" | "shared";
   readonly organizer: { readonly name: string } | null;
@@ -177,6 +179,7 @@ interface McpSpeaker {
   readonly talks: ReadonlyArray<{
     readonly title: string;
     readonly eventSlug: string;
+    readonly eventUrl: string;
   }>;
 }
 
@@ -385,6 +388,38 @@ describe("which evenings there are, and in what order", () => {
         id,
         curation: event.curation,
         organizer: event.organizer?.name ?? null,
+      });
+    }
+  });
+
+  test("list_events and list_speakers link to each evening where its page is, as the feed does, and name it by its long slug", async () => {
+    const pages = new Map(
+      (await surfaces.read(FeedData.use((data) => data.listPublished))).map(
+        (event) => [event.id, eventUrl(origin, event.slug)],
+      ),
+    );
+    const longSlugs = new Map(events.map((event) => [event.id, event.slug]));
+    const listed = await surfaces.listEvents("all");
+    for (const event of listed) {
+      const id = idOf(event.slug);
+      expect({ id, slug: event.slug, url: event.url }).toEqual({
+        id,
+        slug: longSlugs.get(id) ?? "",
+        url: pages.get(id) ?? "",
+      });
+    }
+    expect(listed.find((event) => idOf(event.slug) === reactAtAcme)?.url).toBe(
+      `${origin}/react`,
+    );
+    const talks = (await surfaces.listSpeakers()).flatMap(
+      (speaker) => speaker.talks,
+    );
+    expect(talks.length).toBeGreaterThan(0);
+    for (const talk of talks) {
+      const id = idOf(talk.eventSlug);
+      expect({ id, eventUrl: talk.eventUrl }).toEqual({
+        id,
+        eventUrl: pages.get(id) ?? "",
       });
     }
   });

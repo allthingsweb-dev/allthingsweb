@@ -17,6 +17,7 @@ import {
   imageJson,
   orDataSourceError,
   profileJson,
+  siteSlug,
 } from "./sql.ts";
 
 /**
@@ -43,7 +44,7 @@ const make = Effect.gen(function* () {
   const sql = yield* SqlClient;
 
   const eventColumns = sql.literal(`
-    e.id, e.slug, e.name, e.tagline,
+    e.id, e.slug, ${siteSlug("e")} AS "siteSlug", e.name, e.tagline,
     e.start_date AS "startDate", e.end_date AS "endDate",
     e.street_address AS "streetAddress", e.short_location AS "shortLocation",
     e.full_address AS "fullAddress", e.luma_event_id AS "lumaEventId",
