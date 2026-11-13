@@ -13,8 +13,9 @@ import { simpleDate } from "./time.ts";
  * metrics.ts (the anonymous counts), pages/theme.ts (the one cookie),
  * core's src/luma/api.ts (guest counts, never the list), the people
  * pipeline (core's README, "Filling in profiles"; docs/now.md) and
- * mcp/endpoint.ts (answers kept by the question, not the asker). Change
- * the page, and `updated`, when any of those changes.
+ * mcp/endpoint.ts (answers kept by the question, not the asker; never
+ * coach_talk's). Change the page, and `updated`, when any of those
+ * changes.
  */
 
 export interface PrivacyProps {
@@ -30,7 +31,7 @@ export interface PrivacyProps {
 export const privacyPath = "/privacy";
 
 /** When the page last changed, as YYYY-MM-DD. */
-export const privacyUpdated = "2026-11-10";
+export const privacyUpdated = "2026-11-13";
 
 /** Where privacy requests go. */
 export const privacyEmail = "hello@allthings.dev";
@@ -125,6 +126,11 @@ export function privacyPage({
             account or key, and their requests are counted and logged like any
             page's. To answer quickly, the site keeps each answer under the
             question asked, never under who asked it.
+          </p>
+          <p>
+            The MCP server's <code>coach_talk</code> checks a talk you send it,
+            your outline or a rehearsal's transcript, and answers. It keeps none
+            of what you send, its answer included, and logs none of it.
           </p>
           <p>
             At an evening that passes the aux, <code>allthings aux</code> sets
