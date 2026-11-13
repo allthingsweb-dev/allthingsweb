@@ -5,6 +5,7 @@ import * as Test from "alchemy/Test/Bun";
 import { Guide } from "allthings-core/src/contract.ts";
 import { guideEntries } from "allthings-core/src/guide.ts";
 import { seededDatabase } from "allthings-core/tests/support/database.ts";
+import * as Contract from "allthings-core/src/contract.ts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import { CacheControl } from "../src/cache.ts";
@@ -305,6 +306,34 @@ describe("v1 API", () => {
     ]);
   });
 
+  it("lists the years with an evening of ours held, and answers each as get_year does", async ({
+    Web,
+  }) => {
+    const list = await fetch(`${Web}/api/v1/years`);
+    expect(list.status).toBe(200);
+    expect(list.headers.get("cache-control")).toBe(CacheControl.publicData);
+    expect(await list.json()).toEqual({ years: [2026, 2025] });
+    const response = await fetch(`${Web}/api/v1/years/2025`);
+    expect(response.status).toBe(200);
+    const { year } = (await response.json()) as { year: unknown };
+    const decoded = Schema.decodeUnknownSync(Contract.Year)(year);
+    expect(decoded.evenings.map((evening) => evening.slug)).toEqual([
+      "2025-12-02-café-night",
+    ]);
+    const tool = rpcMessage(
+      await (
+        await fetch(mcpRequest(`${Web}/mcp`, call("get_year", { year: 2025 })))
+      ).text(),
+    ) as { result: { structuredContent: unknown } };
+    expect(year).toEqual(tool.result.structuredContent);
+    for (const path of ["/api/v1/years/2024", "/api/v1/years/25"]) {
+      const missing = await fetch(`${Web}${path}`);
+      expect(missing.status).toBe(404);
+      expect(await missing.json()).toEqual({ error: "Year not found" });
+      expect(missing.headers.get("cache-control")).toBe(CacheControl.notFound);
+    }
+  });
+
   for (const id of [
     "not-a-uuid",
     "2026-08-12-react-at-acme",
@@ -427,9 +456,13 @@ describe("MCP", () => {
       "list_speakers",
       "get_community",
       "get_guide",
+      "get_year",
     ]);
-    // get_guide is new: the app never had it (core's contract holds it).
-    const served = all.filter((tool) => tool["name"] !== "get_guide");
+    // get_guide and get_year are new: the app never had them (core's
+    // contract holds them).
+    const served = all.filter(
+      (tool) => tool["name"] !== "get_guide" && tool["name"] !== "get_year",
+    );
     // Names, titles, descriptions, annotations and input schemas, exactly,
     // but for one deliberate difference: the Worker writes the name as one
     // word, allthings, where the app still writes "all things".
@@ -602,6 +635,54 @@ describe("MCP", () => {
     const response = await fetch(request);
     await response.body?.cancel();
     expect(response.status).toBe(413);
+  });
+
+  it("get_year looks back on a year of our evenings in the contract's shape, the latest when none is asked for", async ({
+    Web,
+  }) => {
+    type YearAnswer = {
+      result: {
+        isError?: boolean;
+        structuredContent?: Contract.Year;
+        content: Array<{ text: string }>;
+      };
+    };
+    const ask = async (args: Record<string, unknown>) =>
+      (
+        rpcMessage(
+          await (
+            await fetch(mcpRequest(`${Web}/mcp`, call("get_year", args)))
+          ).text(),
+        ) as YearAnswer
+      ).result;
+    const latest = await ask({});
+    expect(latest.isError).toBeUndefined();
+    const year = Schema.decodeUnknownSync(Contract.Year)(
+      latest.structuredContent,
+    );
+    expect(year.year).toBe(2026);
+    expect(year.years).toEqual([2026, 2025]);
+    expect(year.url).toBe(`${origin}/year/2026`);
+    // In the order held; the Worker reads the seed at today's clock, when
+    // every evening of it is over. The draft is never one.
+    expect(year.evenings.map((evening) => evening.slug)).toEqual([
+      "2026-08-12-react-at-acme",
+      "2026-10-03-ends-now",
+      "2026-10-03-hack-day",
+      "2026-11-05-upcoming",
+    ]);
+    expect(year.evenings[0]?.onStage[0]).toEqual({
+      name: "Linus",
+      url: `${origin}/people/linus`,
+    });
+    expect(year.tally.guests).toBe(118);
+    expect((await ask({ year: 2025 })).structuredContent?.year).toBe(2025);
+    const none = await ask({ year: 2024 });
+    expect(none.isError).toBe(true);
+    expect(none.content[0]?.text).toBe(
+      "No allthings evening was held in 2024.",
+    );
+    expect((await ask({ year: 26 })).isError).toBe(true);
   });
 
   it("answers a call whose arguments hold too many elements with an error, and still serves", async ({

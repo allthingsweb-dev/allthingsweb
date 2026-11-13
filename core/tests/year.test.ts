@@ -1,9 +1,10 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { DateTime, Effect, Layer, Option } from "effect";
+import { DateTime, Effect, Layer, Option, Schema } from "effect";
 import { About } from "../src/about.ts";
 import { DataSourceError } from "../src/errors.ts";
 import type { HeroPick } from "../src/hero-photos.ts";
-import { Year, type YearView } from "../src/year.ts";
+import * as Contract from "../src/contract.ts";
+import { Year, type YearView, yearContract } from "../src/year.ts";
 import { clockAt, now, seededDatabase, sqlLayer } from "./support/database.ts";
 
 /**
@@ -200,6 +201,45 @@ describe("Year", () => {
     ]) {
       expect(held).not.toContain(slug);
     }
+  });
+
+  test("is the public contract's year, at absolute URLs on the site", async () => {
+    const view = await readSome(2025);
+    const year = yearContract(view, "https://allthings.dev");
+    expect(Schema.decodeUnknownSync(Contract.Year)(year)).toEqual(year);
+    expect(year.url).toBe("https://allthings.dev/year/2025");
+    expect(year.timeZone).toBe("America/Los_Angeles");
+    expect(year.tally).toEqual(view.tally);
+    const [cafeNight, eve] = year.evenings;
+    expect(cafeNight).toEqual({
+      slug: cafe,
+      name: "Café night",
+      topic: "café night",
+      url: "https://allthings.dev/2025-12-02-caf%C3%A9-night",
+      startsAt: "2025-12-03T02:00:00.000Z",
+      neighborhood: null,
+      hosts: [],
+      onStage: [
+        { name: "Linus", url: "https://allthings.dev/people/linus" },
+        {
+          name: "Grace Hopper",
+          url: "https://allthings.dev/people/grace-hopper",
+        },
+        {
+          name: "Ada Lovelace",
+          url: "https://allthings.dev/people/ada-lovelace",
+        },
+      ],
+      guests: null,
+      photo: {
+        url: "https://storage.example/photos/cafe.jpg",
+        alt: "Coffee at Café night",
+        width: 1200,
+        height: 800,
+      },
+    });
+    expect(eve?.photo).toBeNull();
+    expect(year.years).toEqual([2026, 2025]);
   });
 
   test("fails as a DataSourceError when the database can't be read", async () => {
