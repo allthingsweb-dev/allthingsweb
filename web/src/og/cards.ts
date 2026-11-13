@@ -39,6 +39,10 @@ export const ogCards = {
     cards.privacy,
     "privacy · allthings/_ · What this site keeps about you, and how to have it taken down.",
   ),
+  coach: card(
+    cards.coach,
+    "coach · allthings/_ · What a good talk looks like on our stage, and how to check yours.",
+  ),
   brand: card(
     cards.brand,
     "allthings/brand · The rules every page, cover and line of copy is checked against.",

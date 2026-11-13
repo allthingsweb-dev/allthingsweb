@@ -240,6 +240,14 @@ PAGES = (
         ("What this site keeps about you,", "and how to have it taken down."),
     ),
     Page(
+        "og-coach.png",
+        "coach · allthings/_",
+        ("coach",),
+        False,
+        "a talk on our stage",
+        ("What a good talk looks like on our stage,", "and how to check yours."),
+    ),
+    Page(
         "og-brand.png",
         "allthings/brand",
         ("brand",),

@@ -38,6 +38,7 @@ export const reservedSlugs: ReadonlySet<string> = new Set([
   "api",
   "assets",
   "brand",
+  "coach",
   "code-of-conduct",
   "events",
   "guide",
