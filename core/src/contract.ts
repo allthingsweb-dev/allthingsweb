@@ -119,6 +119,36 @@ export const TalkSpeaker = Schema.Struct({
   links: PersonLinks,
 });
 
+/** A talk's own recording, from where the talk starts. */
+export const TalkRecording = Schema.Struct({
+  url: HttpUrl.annotate({
+    description:
+      "The recording, at the talk's start where the host supports it (YouTube's t parameter).",
+  }),
+  startSeconds: Schema.NullOr(
+    Schema.Int.check(
+      Schema.isGreaterThanOrEqualTo(0),
+      Schema.isLessThanOrEqualTo(Number.MAX_SAFE_INTEGER),
+    ),
+  ).annotate({
+    description:
+      "Where the talk starts in a recording of the whole evening, in seconds; null when it starts at the beginning.",
+  }),
+});
+
+/** Something a talk left behind: its slides, code, site or another link. */
+export const TalkArtifact = Schema.Struct({
+  kind: Schema.Literals(["recording", "slides", "repo", "site", "other"]),
+  url: HttpUrl,
+  label: Schema.NullOr(Schema.String).annotate({
+    description: "What the link is, where its kind doesn't say enough.",
+  }),
+  elsewhere: Schema.NullOr(Schema.String).annotate({
+    description:
+      "Where the same talk was given, when the link comes from there and not from our evening.",
+  }),
+});
+
 export const Event = Schema.Struct({
   ...EventSummary.fields,
   talks: Schema.Array(
@@ -126,6 +156,14 @@ export const Event = Schema.Struct({
       title: Schema.String,
       description: Schema.String.annotate({ description: "Plain text." }),
       speakers: Schema.Array(TalkSpeaker),
+      recording: Schema.NullOr(TalkRecording).annotate({
+        description:
+          "The talk's own recording, or null. The evening's recording is recordingUrl.",
+      }),
+      artifacts: Schema.Array(TalkArtifact).annotate({
+        description:
+          "The talk's slides, code, site and other links, in order, including recordings of the same talk given elsewhere.",
+      }),
     }),
   ),
   hosts: Schema.Array(

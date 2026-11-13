@@ -2,6 +2,7 @@ import { Context, Effect, Layer, Option, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
 import {
+  artifactsOf,
   hostsOf,
   latestFirst,
   linkFirst,
@@ -19,6 +20,7 @@ import {
   profileJson,
   siteSlug,
 } from "./sql.ts";
+import { artifactJson } from "./talk-artifacts.ts";
 
 /**
  * Published events. Drafts never leave this service: they are filtered in SQL,
@@ -73,7 +75,8 @@ const make = Effect.gen(function* () {
         e.luma_checked_in_count AS "lumaCheckedInCount",
         ${talksOf(sql, "e", {
           talk: sql`'id', t.id, 'title', t.title,
-            'description', t.description, 'format', t.format`,
+            'description', t.description, 'format', t.format,
+            'artifacts', ${artifactsOf(sql, artifactJson(sql))}`,
           speaker: sql`(${sql.literal(profileJson)})::jsonb
             || jsonb_build_object('role', ts.role)`,
         })} AS talks,

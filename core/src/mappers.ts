@@ -5,6 +5,7 @@ import { htmlToPlainText, sanitizeRichText } from "./rich-text.ts";
 import type * as Rows from "./rows.ts";
 import type { SpeakerDirectory } from "./speakers.ts";
 import { sharedPrefix } from "./short-slugs.ts";
+import { talkLinks } from "./talk-artifacts.ts";
 
 /**
  * Repository rows to the public contract: a port of
@@ -125,6 +126,7 @@ export const toEvent = (
       title: talk.title,
       description: htmlToPlainText(description),
       speakers: talk.speakers.map(talkSpeaker),
+      ...talkLinks(talk.artifacts ?? []),
     })),
   ).pipe(
     Effect.map((talks) => ({

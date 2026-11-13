@@ -106,6 +106,19 @@ const asOurs = (event: object) => ({
 });
 
 /**
+ * A captured event with its talks' links, as every talk then had: none,
+ * since talks had no links of their own before talk_artifacts.
+ */
+const withLinks = (event: { readonly talks: ReadonlyArray<object> }) => ({
+  ...event,
+  talks: event.talks.map((talk) => ({
+    ...talk,
+    recording: null,
+    artifacts: [],
+  })),
+});
+
+/**
  * `schema` without its descriptions. They are what agents read, and the
  * MCP server serves them from this contract; the CLI's copy needs only the
  * shapes.
@@ -126,7 +139,7 @@ describe("JSON Schema", () => {
 describe("live responses", () => {
   const live: ReadonlyArray<readonly [string, Pair, ReadonlyArray<unknown>]> = [
     ["list_events", pairs[0]!, events.events.map(asOurs)],
-    ["get_event", pairs[1]!, eventDetails.events.map(asOurs)],
+    ["get_event", pairs[1]!, eventDetails.events.map(withLinks).map(asOurs)],
     ["list_speakers", pairs[2]!, speakers.speakers],
     ["get_community", pairs[3]!, [community]],
     [

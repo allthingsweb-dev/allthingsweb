@@ -140,12 +140,40 @@ async function mcp(
   ];
 }
 
-/** A v1 body's JSON text, an event's attached lists in canonical order. */
+/** What a talk has that the legacy app's talks never had: its own links. */
+const talkLinksSinceTheApp = ["recording", "artifacts"];
+
+/** `event` with its talks as the app had them, without {@link talkLinksSinceTheApp}. */
+function talksAsTheAppHasThem(event: Json): Json {
+  if (event === null || typeof event !== "object" || Array.isArray(event))
+    return event;
+  const talks = event["talks"];
+  if (!Array.isArray(talks)) return event;
+  return {
+    ...event,
+    talks: talks.map((talk) =>
+      talk === null || typeof talk !== "object" || Array.isArray(talk)
+        ? talk
+        : Object.fromEntries(
+            Object.entries(talk).filter(
+              ([key]) => !talkLinksSinceTheApp.includes(key),
+            ),
+          ),
+    ),
+  };
+}
+
+/**
+ * A v1 body's JSON text, an event's attached lists in canonical order and
+ * its talks as the app had them.
+ */
 function v1Body(body: string): string {
   const json = JSON.parse(body) as Record<string, Json>;
   const event = json["event"];
   return JSON.stringify(
-    event === undefined ? json : { ...json, event: ignoringAttachOrder(event) },
+    event === undefined
+      ? json
+      : { ...json, event: talksAsTheAppHasThem(ignoringAttachOrder(event)) },
   );
 }
 
@@ -156,8 +184,11 @@ type ToolMessage = {
   };
 };
 
-/** The fields the contract has and the legacy app never had. */
-const sinceTheApp = ["curation", "organizer"];
+/**
+ * The fields the contract has and the legacy app never had: whose an
+ * evening is, and a talk's own links.
+ */
+const sinceTheApp = ["curation", "organizer", "recording", "artifacts"];
 
 /** Where an event's page is: the contract names allthings.dev, the legacy app its own host. */
 const eventPage = {
