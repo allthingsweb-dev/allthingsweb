@@ -1,4 +1,399 @@
 {
-  "artifacts": [],
-  "held": []
+  "artifacts": [
+    {
+      "talkId": "11b8abb7-a292-453d-ae20-d4bfdc50f2b5",
+      "title": "State of Effect 2026",
+      "kind": "other",
+      "url": "https://effect.website/blog/releases/effect/40",
+      "label": "the Effect 4.0 release, merged on stage",
+      "source": "https://effect.website/blog/this-week-in-effect/138",
+      "read": "2026-11-13",
+      "note": "This Week in Effect #138: Michael and Sebastian merged the 4.0 stable release live at the Effect San Francisco meetup."
+    },
+    {
+      "talkId": "a360c0e8-b91c-4ba8-a362-763879f4ab7f",
+      "title": "Alchemy 2.0",
+      "kind": "repo",
+      "url": "https://github.com/alchemy-run/alchemy",
+      "label": "Alchemy's code",
+      "source": "https://effect.website/blog/this-week-in-effect/138",
+      "read": "2026-11-13",
+      "note": "TWIE #138 quotes Sam on speaking about Alchemy at the Effect 4.0 release meetup. The project's repo, not one made for the talk."
+    },
+    {
+      "talkId": "0ac5a50f-5df5-498a-9442-5ec604da5bbc",
+      "title": "My most used slash commands and custom subagents for development",
+      "kind": "repo",
+      "url": "https://github.com/ArthurDevel/workos-devmeetup-setup",
+      "label": "his commands and subagent",
+      "source": "https://github.com/ArthurDevel/workos-devmeetup-setup",
+      "read": "2026-11-13",
+      "note": "README: the two slash commands and custom subagent presented at our Dev Setup Demos Luma event; also linked from the talk's description."
+    },
+    {
+      "talkId": "abb0c7f4-8e11-49d8-87ab-d113b9dca83f",
+      "title": "Use an open-source tool to get agents to install modern dev tools for you! 🧙",
+      "kind": "repo",
+      "url": "https://github.com/sourcewizard-ai/sourcewizard",
+      "label": "SourceWizard's code",
+      "source": "https://lu.ma/event/evt-s9SEHLVbphwdAPZ",
+      "read": "2026-11-13",
+      "note": "The talk's description names SourceWizard, the open-source tool he demoed. The project's repo."
+    },
+    {
+      "talkId": "dea12b58-a235-4b93-85a7-974552447018",
+      "title": "How to build AI Agents",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=tJ7jaSobHcE",
+      "startSeconds": 231,
+      "source": "https://www.youtube.com/watch?v=tJ7jaSobHcE",
+      "read": "2026-11-13",
+      "note": "The evening's video on the allthings YouTube channel; its description's chapters name the talk and the speaker at this start."
+    },
+    {
+      "talkId": "0d6241aa-9975-48eb-b3f2-e2c884122dcd",
+      "title": "The Agent-First Bet: How Windsurf Hit 500K Users in 3 Months",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=tJ7jaSobHcE",
+      "startSeconds": 1230,
+      "source": "https://www.youtube.com/watch?v=tJ7jaSobHcE",
+      "read": "2026-11-13",
+      "note": "The evening's video on the allthings YouTube channel; its description's chapters name the talk and the speaker at this start."
+    },
+    {
+      "talkId": "1a5a699b-e045-4100-9d85-3b9986f665f4",
+      "title": "Leading LLMs - A structured approach to building quality software with AI",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=tJ7jaSobHcE",
+      "startSeconds": 2452,
+      "source": "https://www.youtube.com/watch?v=tJ7jaSobHcE",
+      "read": "2026-11-13",
+      "note": "The evening's video on the allthings YouTube channel; its description's chapters name the talk and the speaker at this start."
+    },
+    {
+      "talkId": "1a5a699b-e045-4100-9d85-3b9986f665f4",
+      "title": "Leading LLMs - A structured approach to building quality software with AI",
+      "kind": "slides",
+      "url": "https://www.figma.com/deck/eJwtTQUnW3Zvy5994vM5qR",
+      "source": "https://lirbank.com",
+      "read": "2026-11-13",
+      "note": "lirbank.com's talks list 'AI x All Things Web, AWS Gen AI Loft, San Francisco, Apr 3, 2025' with this presentation deck."
+    },
+    {
+      "talkId": "14f2e300-f2ae-4311-a229-3f2f9b56990a",
+      "title": "Fullstack AI with AWS Amplify",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=tJ7jaSobHcE",
+      "startSeconds": 3125,
+      "source": "https://www.youtube.com/watch?v=tJ7jaSobHcE",
+      "read": "2026-11-13",
+      "note": "The evening's video on the allthings YouTube channel; its description's chapters name the talk and the speaker at this start."
+    },
+    {
+      "talkId": "dc9a4e77-1102-461b-989e-b52fbf57c649",
+      "title": "AI, IDEs, and the Future of Code Understanding",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=6EVhRDB0P-g",
+      "startSeconds": 168,
+      "source": "https://www.youtube.com/watch?v=6EVhRDB0P-g",
+      "read": "2026-11-13",
+      "note": "The evening's video on the allthings YouTube channel; its description's chapters name the talk and the speaker at this start."
+    },
+    {
+      "talkId": "dc9a4e77-1102-461b-989e-b52fbf57c649",
+      "title": "AI, IDEs, and the Future of Code Understanding",
+      "kind": "repo",
+      "url": "https://github.com/CodebuffAI/freebuff",
+      "label": "Codebuff's code",
+      "source": "https://www.youtube.com/watch?v=6EVhRDB0P-g",
+      "read": "2026-11-13",
+      "note": "The evening video's description: James showcased Codebuff, a terminal-based coding agent. Codebuff is now Freebuff."
+    },
+    {
+      "talkId": "ecd38a44-16bb-468e-a14e-02ece11364eb",
+      "title": "Technical Leadership in the world of AI Coding Agents",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=6EVhRDB0P-g",
+      "startSeconds": 1304,
+      "source": "https://www.youtube.com/watch?v=6EVhRDB0P-g",
+      "read": "2026-11-13",
+      "note": "The evening's video on the allthings YouTube channel; its description's chapters name the talk and the speaker at this start."
+    },
+    {
+      "talkId": "46c0e0fe-954f-4396-9919-1b2a0a81c3c6",
+      "title": "Build your own image optimizer",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=6EVhRDB0P-g",
+      "startSeconds": 2890,
+      "source": "https://www.youtube.com/watch?v=6EVhRDB0P-g",
+      "read": "2026-11-13",
+      "note": "The evening's video on the allthings YouTube channel; its description's chapters name the talk and the speaker at this start."
+    },
+    {
+      "talkId": "46c0e0fe-954f-4396-9919-1b2a0a81c3c6",
+      "title": "Build your own image optimizer",
+      "kind": "repo",
+      "url": "https://github.com/andrelandgraf/openimg",
+      "label": "openimg's code",
+      "source": "https://www.epicweb.dev/talks/epic-image-optimization",
+      "read": "2026-11-13",
+      "note": "Our abstract: he built an optimizer from scratch and open-sourced it. The Epic Web page names openimg as that package, built for the All Things Web site."
+    },
+    {
+      "talkId": "f173957f-bb3d-431e-a94e-fd66823573f3",
+      "title": "React renders - do they matter?",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=cI6aOCw3p-o",
+      "startSeconds": 295,
+      "source": "https://www.youtube.com/watch?v=cI6aOCw3p-o",
+      "read": "2026-11-13",
+      "note": "The evening's video on the allthings YouTube channel; its description's chapters name the talk and the speaker at this start."
+    },
+    {
+      "talkId": "f173957f-bb3d-431e-a94e-fd66823573f3",
+      "title": "React renders - do they matter?",
+      "kind": "repo",
+      "url": "https://github.com/aidenybai/react-scan",
+      "label": "React Scan's code",
+      "source": "https://www.youtube.com/watch?v=cI6aOCw3p-o",
+      "read": "2026-11-13",
+      "note": "The evening video's description: Aiden demoed React Scan."
+    },
+    {
+      "talkId": "b8ef3673-71d6-4434-9551-a940cd5642ec",
+      "title": "Anti-Crash Course: Building Better Errors and Traces",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=cI6aOCw3p-o",
+      "startSeconds": 1600,
+      "source": "https://www.youtube.com/watch?v=cI6aOCw3p-o",
+      "read": "2026-11-13",
+      "note": "The evening's video on the allthings YouTube channel; its description's chapters name the talk and the speaker at this start."
+    },
+    {
+      "talkId": "fb623d14-d152-41d8-b37a-cf97c678222e",
+      "title": "From Zero to Viral: Leveraging Tech Twitter for Career and Product Growth",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=XM5jjRKWHAI",
+      "startSeconds": 385,
+      "source": "https://www.youtube.com/watch?v=XM5jjRKWHAI",
+      "read": "2026-11-13",
+      "note": "The evening's video on the allthings YouTube channel; its description's chapters name the talk and the speaker at this start."
+    },
+    {
+      "talkId": "d9de9be1-88fd-4aa6-a055-c29f1882f350",
+      "title": "Automerge: using local-first technologies within an authoritative server model",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=QfDQqDjKmWw",
+      "startSeconds": 300,
+      "source": "https://www.youtube.com/watch?v=QfDQqDjKmWw",
+      "read": "2026-11-13",
+      "note": "The evening's video on the allthings YouTube channel; its description's chapters name the talk and the speaker at this start."
+    },
+    {
+      "talkId": "7c29bc3f-2b18-4c34-a057-22783e6d8070",
+      "title": "Local first with React Native",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=QfDQqDjKmWw",
+      "startSeconds": 2630,
+      "source": "https://www.youtube.com/watch?v=QfDQqDjKmWw",
+      "read": "2026-11-13",
+      "note": "The evening's video on the allthings YouTube channel; its description's chapters name the talk and the speaker at this start."
+    },
+    {
+      "talkId": "4d0fc094-1655-4221-8dbd-adad94e3c337",
+      "title": "Strapi 5 + Next.js - the modern, Open-Source Stack",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=_d8qy6uH8AE",
+      "source": "https://www.youtube.com/watch?v=_d8qy6uH8AE",
+      "read": "2026-11-13",
+      "note": "The evening's video on the allthings YouTube channel; its description's chapters name the talk and the speaker at this start."
+    },
+    {
+      "talkId": "39f4532a-09c9-4978-91a2-f3c873c29528",
+      "title": "Design System Patterns for Server Components",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=_d8qy6uH8AE",
+      "startSeconds": 1080,
+      "source": "https://www.youtube.com/watch?v=_d8qy6uH8AE",
+      "read": "2026-11-13",
+      "note": "The evening's video on the allthings YouTube channel; its description's chapters name the talk and the speaker at this start."
+    },
+    {
+      "talkId": "2a127491-e5b2-462a-b475-9fdfed440a69",
+      "title": "Building Video-Driven Web Apps with Mux, Strapi, and Next.js",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=_d8qy6uH8AE",
+      "startSeconds": 2033,
+      "source": "https://www.youtube.com/watch?v=_d8qy6uH8AE",
+      "read": "2026-11-13",
+      "note": "The evening's video on the allthings YouTube channel; its description's chapters name the talk and the speaker at this start."
+    },
+    {
+      "talkId": "d1eb496e-6e98-4ef5-816f-fe57a83c6285",
+      "title": "TCP vs. WebSockets vs. HTTP for Postgres queries",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=_d8qy6uH8AE",
+      "startSeconds": 3060,
+      "source": "https://www.youtube.com/watch?v=_d8qy6uH8AE",
+      "read": "2026-11-13",
+      "note": "The evening's video on the allthings YouTube channel; its description's chapters name the talk and the speaker at this start."
+    },
+    {
+      "talkId": "18d080e2-68df-426c-b7d6-e5dba99dcb95",
+      "title": "Bringing state to Next.js Serverless Functions with Inngest",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=_d8qy6uH8AE",
+      "startSeconds": 3902,
+      "source": "https://www.youtube.com/watch?v=_d8qy6uH8AE",
+      "read": "2026-11-13",
+      "note": "The evening's video on the allthings YouTube channel; its description's chapters name the talk and the speaker at this start."
+    },
+    {
+      "talkId": "cd2b2644-9d67-455a-bec2-43fd6d4fdabe",
+      "title": "​A World Without Limits: Making Videos Accessible to All with React and Cloudflare",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=od_z2uOWW5c",
+      "elsewhere": "Frontend Queens",
+      "source": "https://www.youtube.com/watch?v=od_z2uOWW5c",
+      "read": "2026-11-13",
+      "note": "Frontend Queens' video, December 2024: the same title and abstract, given by Pillippa Pérez Pons."
+    },
+    {
+      "talkId": "21e50997-3236-4c2b-9039-24fbc2c6a3a7",
+      "title": "Implementing a shopping cart with React 19",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=edOxB0lXFmo",
+      "startSeconds": 146,
+      "source": "https://www.youtube.com/watch?v=edOxB0lXFmo",
+      "read": "2026-11-13",
+      "note": "The evening's video on the allthings YouTube channel; its description's chapters name the talk and the speaker at this start."
+    },
+    {
+      "talkId": "eb5db746-a12c-4351-a2cc-57e786b71347",
+      "title": "Custom component-based media players",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=edOxB0lXFmo",
+      "startSeconds": 2853,
+      "source": "https://www.youtube.com/watch?v=edOxB0lXFmo",
+      "read": "2026-11-13",
+      "note": "The evening's video on the allthings YouTube channel; its description's chapters name the talk and the speaker at this start."
+    },
+    {
+      "talkId": "a2b7c5c6-803b-46af-be83-53d2016fc6c8",
+      "title": "A Valuable Multi-Platform UI Architecture",
+      "kind": "repo",
+      "url": "https://github.com/esthor/multi-platform-ui",
+      "label": "talk notes",
+      "source": "https://github.com/esthor/multi-platform-ui",
+      "read": "2026-11-13",
+      "note": "notes.md, 'A Multi-Platform UI Architecture', links the React Bay Area at Sanity Meetup event (301598787)."
+    },
+    {
+      "talkId": "99b225e8-407d-4348-9dd6-593554c8332e",
+      "title": "Enhancing User Authentication with Passkeys",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=Ha8LSgjCWfA",
+      "source": "https://www.youtube.com/watch?v=Ha8LSgjCWfA",
+      "read": "2026-11-13",
+      "note": "Remix Bay Area's YouTube channel: 'Enhancing User Authentication with Passkeys - Tony Dang', uploaded the day after."
+    },
+    {
+      "talkId": "99b225e8-407d-4348-9dd6-593554c8332e",
+      "title": "Enhancing User Authentication with Passkeys",
+      "kind": "slides",
+      "url": "https://docs.google.com/presentation/d/1FWRWY9VmqrglzKinFV9dH-Lk57XChd2U1AS9ldmKZ48/edit?usp=sharing",
+      "source": "https://www.youtube.com/watch?v=Ha8LSgjCWfA",
+      "read": "2026-11-13",
+      "note": "Linked from the recording's description."
+    },
+    {
+      "talkId": "99b225e8-407d-4348-9dd6-593554c8332e",
+      "title": "Enhancing User Authentication with Passkeys",
+      "kind": "repo",
+      "url": "https://github.com/thisistonydang/remix-passkeys-demo",
+      "label": "demo code",
+      "source": "https://www.youtube.com/watch?v=Ha8LSgjCWfA",
+      "read": "2026-11-13",
+      "note": "Linked from the recording's description (as tonydangblog/remix-passkeys-demo, since moved)."
+    }
+  ],
+  "held": [
+    {
+      "talkId": "14316300-a155-4a06-8697-af99bfad86a6",
+      "title": "Nitro Modules",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=25_FWxNh92A",
+      "question": "Was your Nitro Modules talk the same as 'The Past, Present & Future of Nitro' from React Universe Conf 2025, and do you have the slides from our night?"
+    },
+    {
+      "talkId": "d8c7e2bb-7d38-441a-bd07-3db58609b6b8",
+      "title": "What We Learned from Building a Vibe Coding Tool",
+      "kind": "slides",
+      "url": "https://speakerdeck.com/vcoisne/decoding-the-vibe-what-we-learned-from-100-vibe-coders-and-what-we-built-next-by-pierre-burgy-ceo-strapi",
+      "question": "Was your talk with us the 'Decoding the Vibe' deck from the Paris meetup, or the slides you used in SF?"
+    },
+    {
+      "talkId": "5dc837e4-acaa-4349-b620-12839172330b",
+      "title": "Build your own CodeGen platform",
+      "kind": "repo",
+      "url": "https://github.com/andrelandgraf/aileen",
+      "question": "Was Aileen the platform you showed in 'Build your own CodeGen platform'?"
+    },
+    {
+      "talkId": "c49712e1-e8f0-433c-86eb-1b8f2ded4916",
+      "title": "Docs are product: how we write (and use) docs at Replit",
+      "kind": "other",
+      "url": "https://mattpalmer.io/posts/2025/10/8-rules-for-better-docs/",
+      "question": "Is '8 rules for better docs' the written version of your 'Docs are product' talk, and is there a deck?"
+    },
+    {
+      "talkId": "abb0c7f4-8e11-49d8-87ab-d113b9dca83f",
+      "title": "Use an open-source tool to get agents to install modern dev tools for you! 🧙",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=qC_gnMGHu9s",
+      "question": "Was your demo with us the same SourceWizard demo you gave at AI Tinkerers SF on Sept 10?"
+    },
+    {
+      "talkId": "47f3f446-9afa-4042-bf71-a8fc7a3a6899",
+      "title": "NextDev.fm Live",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=jt-D48voF6o",
+      "question": "Were the two Ted Nyman clips on NextDev's channel cut from the live episode at Neon, and is the full episode published anywhere?"
+    },
+    {
+      "talkId": "078da108-e3c4-41b1-ae8c-883a9515e801",
+      "title": "Building a voice-first future",
+      "kind": "repo",
+      "url": "https://github.com/elizabethtrykin/opensource-gemini-live",
+      "question": "Is opensource-gemini-live (vapi-live.vercel.app) the demo from your talk, and do you have the slides?"
+    },
+    {
+      "talkId": "46c0e0fe-954f-4396-9919-1b2a0a81c3c6",
+      "title": "Build your own image optimizer",
+      "kind": "repo",
+      "url": "https://github.com/andrelandgraf/img-optimization-playground",
+      "question": "Was img-optimization-playground the demo you showed, and was 'Epic Image Optimization' at Epic Web Conf the same talk?"
+    },
+    {
+      "talkId": "d9de9be1-88fd-4aa6-a055-c29f1882f350",
+      "title": "Automerge: using local-first technologies within an authoritative server model",
+      "kind": "repo",
+      "url": "https://github.com/ianmacartney/automerge-convex-quickstart",
+      "question": "Was automerge-convex-quickstart (labs.convex.dev/automerge) the demo from your talk, and are there slides?"
+    },
+    {
+      "talkId": "ad201d3b-3832-4165-b6a7-4eedb1d6b0f0",
+      "title": "Live Content that Scales with React Server Components ",
+      "kind": "repo",
+      "url": "https://github.com/sanity-io/live-content-api-demo-live-blog-nextjs",
+      "question": "Did you demo live-content-api-demo-live-blog-nextjs that night, and do you have the slides?"
+    },
+    {
+      "talkId": "a61a2662-e3d0-4e38-a62a-376b74222bb8",
+      "title": "// TODO // FIXME: Real Strategies to Modernize a Legacy React Project",
+      "kind": "recording",
+      "url": "https://www.youtube.com/watch?v=HF7jJRrFq00",
+      "question": "Is the Chain React 2024 version (video, slides PDF and esthor/todo-fixme) the same talk you gave at Remix Bay Area in March 2024?"
+    }
+  ]
 }
