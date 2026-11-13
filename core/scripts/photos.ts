@@ -374,7 +374,7 @@ const library = Command.make(
       const window = libraryWindow(evening.startDate, evening.endDate);
       // Read now, never from a file: only the evening's own photos, as the
       // library has them now, can be exported.
-      const { own, shared } = yield* queryLibrary(window);
+      const { own, unknown: notKnownOwn } = yield* queryLibrary(window);
       if (exportUuids.length > 0) {
         const unknown = exportUuids.filter(
           (uuid) => !own.some((photo) => photo.uuid === uuid),
@@ -428,7 +428,7 @@ const library = Command.make(
         window,
         folder,
         found: own.length,
-        sharedLeftOut: shared,
+        notKnownOwnLeftOut: notKnownOwn,
         noPreview,
         picks: drawn.picks.map((m) => ({
           uuid: m.photo.uuid,
@@ -455,7 +455,7 @@ const library = Command.make(
         json
           ? JSON.stringify(result, null, 2)
           : [
-              `${evening.slug}: ${own.length} of Erik's own photos in the library from ${window.from} to ${window.to}${shared > 0 ? ` (${shared} shared by others left out)` : ""}; ${dryRun ? "previews read in place, nothing written" : `previews in ${folder}/previews`}`,
+              `${evening.slug}: ${own.length} of Erik's own photos in the library from ${window.from} to ${window.to} (shared ones never read${notKnownOwn > 0 ? `; ${notKnownOwn} more the library didn't show as his left out` : ""}); ${dryRun ? "previews read in place, nothing written" : `previews in ${folder}/previews`}`,
               `Shortlist (${drawn.picks.length}):`,
               ...drawn.picks.map(
                 (m) =>

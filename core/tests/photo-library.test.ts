@@ -39,6 +39,10 @@ const photo = (overrides: Partial<LibraryPhoto> = {}): LibraryPhoto => ({
   persons: [],
   face_info: [],
   score: { overall: 0.5 },
+  shared: false,
+  syndicated: false,
+  shared_library: false,
+  shared_moment: false,
   ...overrides,
 });
 
@@ -70,16 +74,6 @@ describe("the window", () => {
 describe("whose photo it is", () => {
   test("only Erik's own: nothing shared, Shared with You, in a Shared Library or a shared moment", () => {
     expect(isOwn(photo())).toBe(true);
-    expect(
-      isOwn(
-        photo({
-          shared: false,
-          syndicated: null,
-          shared_library: false,
-          shared_moment: false,
-        }),
-      ),
-    ).toBe(true);
     for (const shared of [
       { shared: true },
       { syndicated: true },
@@ -87,6 +81,19 @@ describe("whose photo it is", () => {
       { shared_moment: true },
     ]) {
       expect(isOwn(photo(shared))).toBe(false);
+    }
+  });
+
+  test("a photo the library says nothing of, on any of the four, is not known to be his", () => {
+    for (const field of [
+      "shared",
+      "syndicated",
+      "shared_library",
+      "shared_moment",
+    ] as const) {
+      expect(isOwn(photo({ [field]: null }))).toBe(false);
+      const { [field]: _, ...missing } = photo();
+      expect(isOwn(missing)).toBe(false);
     }
   });
 
