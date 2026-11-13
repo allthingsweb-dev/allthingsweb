@@ -450,6 +450,7 @@ describe("links within the site", () => {
   for (const path of [
     "/",
     "/events",
+    "/talks",
     "/people",
     "/people/ada-lovelace",
     "/people/erik-thorelli",
@@ -564,6 +565,33 @@ describe("/about", () => {
       }
     });
   }
+});
+
+describe("/talks", () => {
+  it("lists the talks given at our evenings, cached like public data, each with its speakers, evening and recording", async (url) => {
+    const response = await fetch(`${url}/talks`);
+    const html = await response.text();
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.publicData);
+    // The upcoming evening's fireside chat hasn't been given yet.
+    expect(
+      [...html.matchAll(/class="talk-title">([^<]*)</g)].map(([, t]) => t),
+    ).toEqual(["Compilers, together"]);
+    expect(html).toContain(
+      '<a href="/people/grace-hopper">Grace Hopper</a>, <a href="/people/ada-lovelace">Ada Lovelace</a>',
+    );
+    expect(html).toContain(`<a href="/${slugs.past}">`);
+    expect(html).toContain(
+      '<a class="talk-video at-type-meta" href="https://youtu.be/sanity">',
+    );
+  });
+
+  it("says plainly when the talks can't be read, and is never cached", async (_, noDatabase) => {
+    const response = await fetch(`${noDatabase}/talks`);
+    expect(response.status).toBe(503);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
+    expect(await htmlProblems(await response.text())).toEqual([]);
+  });
 });
 
 describe("names on event pages", () => {
@@ -727,6 +755,7 @@ describe("every kind of page", () => {
   const paths = [
     "/",
     "/events",
+    "/talks",
     `/${slugs.upcoming}`,
     `/${slugs.live}`,
     `/${slugs.past}`,
@@ -761,6 +790,7 @@ describe("simple dates", () => {
   const dated = [
     "/",
     "/events",
+    "/talks",
     `/${slugs.upcoming}`,
     `/${slugs.live}`,
     `/${slugs.past}`,

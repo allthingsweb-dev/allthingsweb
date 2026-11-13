@@ -168,6 +168,7 @@ describe("the sitemap", () => {
     expect(urlsOf(xml)).toEqual([
       { loc: "https://allthings.dev/" },
       { loc: "https://allthings.dev/events" },
+      { loc: "https://allthings.dev/talks" },
       { loc: "https://allthings.dev/people" },
       { loc: "https://allthings.dev/about" },
       { loc: "https://allthings.dev/code-of-conduct" },
@@ -191,6 +192,7 @@ describe("the sitemap", () => {
     expect(urlsOf(empty).map((url) => url.loc)).toEqual([
       "https://allthings.dev/",
       "https://allthings.dev/events",
+      "https://allthings.dev/talks",
       "https://allthings.dev/people",
       "https://allthings.dev/about",
       "https://allthings.dev/code-of-conduct",

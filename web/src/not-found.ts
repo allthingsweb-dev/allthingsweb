@@ -183,6 +183,7 @@ export const guessedWords: ReadonlySet<string> = new Set([
 export const slugRoots: ReadonlySet<string> = new Set([
   "events",
   "people",
+  "talks",
   "speakers",
   "about",
   "brand",

@@ -38,12 +38,14 @@ statement from it.
   `latestAppearanceFirst`). /people is our evenings' at any time; a
   person's page, every evening's; /about counts ours once over; the sitemap
   lists everyone at any; the speakers list (`list_speakers`,
-  `/api/v1/speakers`) counts our evenings' talks once `ended`.
+  `/api/v1/speakers`) counts our evenings' talks once `ended`, and the
+  talks library (/talks, `src/talks-library.ts`) lists those talks, each
+  evening's lineup by `talksOf`.
 
 Each surface still reads in one statement, since from a Worker every round
 trip costs more than the query, and builds it from these fragments. What a
 surface adds is how it shows what the catalog selects: home's limits, its
-hero (always ours); /events by year; an event page's posts,
+hero (always ours); /events and /talks by year; an event page's posts,
 schedule, notes, venue and guest count; the people page's groups and its
 X-follower order; the API's and the tools' published fields, long slugs,
 limits, search and error texts. None of that decides which evenings or
@@ -64,8 +66,9 @@ seeded database at one instant: the same evenings in the same order from
 `list_events`, `/api/v1/events`, the feed, /events and home; the same
 lineup from `get_event`, `/api/v1/events/:id` and the event page, by every
 link; the same people and talks from `list_speakers`, `/api/v1/speakers`,
-/people, people's pages, /about and the sitemap; and whose each evening is,
-from `list_events` and /events.
+/talks, /people, people's pages, /about and the sitemap, and each
+evening's talks on /talks in its page's running order; and whose each
+evening is, from `list_events` and /events.
 
 The public contract is `src/contract.ts`, the one source of it. The CLI's
 zod copy (`cli/src/schemas.ts`) is held to it by `tests/contract.test.ts`,

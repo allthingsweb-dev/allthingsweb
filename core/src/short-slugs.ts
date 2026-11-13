@@ -60,6 +60,7 @@ export const reservedSlugs: ReadonlySet<string> = new Set([
   "sentry-example-page",
   "shared",
   "speakers",
+  "talks",
 ]);
 
 /**

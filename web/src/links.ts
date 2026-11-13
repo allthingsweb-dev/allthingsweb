@@ -34,6 +34,9 @@ export const homePath = "/";
 /** Every evening, listed: this site's evenings index (pages/events.tsx). */
 export const everyEvening = "/events";
 
+/** Every talk given at our evenings, listed: the talks library (pages/talks.tsx). */
+export const everyTalk = "/talks";
+
 /** What allthings is, where it came from and who organizes it. */
 export const aboutPath = "/about";
 

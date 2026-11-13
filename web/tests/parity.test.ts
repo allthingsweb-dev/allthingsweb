@@ -10,6 +10,7 @@ import {
   type PeopleView,
   type PersonLookup,
 } from "allthings-core/src/people-directory.ts";
+import { TalksLibrary } from "allthings-core/src/talks-library.ts";
 import {
   clockAt,
   now,
@@ -244,6 +245,7 @@ function surfacesAt(at: DateTime.Utc) {
     FeedData.layer,
     Home.layer,
     PeopleDirectory.layer,
+    TalksLibrary.layer,
   ).pipe(Layer.provideMerge(sqlLayer(db)), Layer.provideMerge(clock));
 
   return {
@@ -275,7 +277,13 @@ function surfacesAt(at: DateTime.Utc) {
       program: Effect.Effect<
         A,
         E,
-        About | Evenings | EventPages | FeedData | Home | PeopleDirectory
+        | About
+        | Evenings
+        | EventPages
+        | FeedData
+        | Home
+        | PeopleDirectory
+        | TalksLibrary
       >,
     ): Promise<A> => Effect.runPromise(Effect.provide(program, models)),
   };
@@ -668,5 +676,52 @@ describe("who has been on stage", () => {
       About.use((repository) => repository.read([], photoOrigin)),
     );
     expect(about.speakers).toBe((await surfaces.listSpeakers()).length);
+  });
+
+  // The talks library lists the talks list_speakers credits, a talk at a
+  // time: never Mastra's, and nothing of an evening not yet over.
+  test("/talks lists every talk list_speakers credits, and no other", async () => {
+    const library = await surfaces.read(
+      TalksLibrary.use((repository) => repository.read),
+    );
+    const onTalks = library.flatMap((talk) =>
+      talk.speakers.map(
+        (speaker) =>
+          `${speaker.name}: ${talk.title} @ ${idOf(talk.evening.slug)}`,
+      ),
+    );
+    const credited = (await surfaces.listSpeakers()).flatMap((speaker) =>
+      speaker.talks.map(
+        (talk) => `${speaker.name}: ${talk.title} @ ${idOf(talk.eventSlug)}`,
+      ),
+    );
+    expect(credited.length).toBeGreaterThan(0);
+    expect(onTalks.toSorted()).toEqual(credited.toSorted());
+  });
+
+  test("/talks lists each evening's talks in its page's running order, latest evening first", async () => {
+    const library = await surfaces.read(
+      TalksLibrary.use((repository) => repository.read),
+    );
+    const slugs = [...new Set(library.map((talk) => talk.evening.slug))];
+    // The evenings are /events' past ones that are ours, in its order.
+    const view = await evenings();
+    expect(ids(slugs.map((slug) => ({ slug })))).toEqual(
+      ids(
+        view.past.filter(
+          (e) => e.curation.kind === "ours" && slugs.includes(e.slug),
+        ),
+      ),
+    );
+    for (const slug of slugs) {
+      const page = await eventPage(slug);
+      expect(page).toBeDefined();
+      expect({
+        slug,
+        talks: library
+          .filter((talk) => talk.evening.slug === slug)
+          .map((talk) => talk.title),
+      }).toEqual({ slug, talks: page?.talks.map((talk) => talk.title) ?? [] });
+    }
   });
 });
