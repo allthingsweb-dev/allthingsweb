@@ -3,10 +3,12 @@ import { commandName, defaultEndpoint } from "./config.ts";
 import { CliError, ExitCode } from "./errors.ts";
 import {
   communitySchema,
+  guideSchema,
   eventListSchema,
   eventSchema,
   speakerListSchema,
   type Community,
+  type Guide,
   type Event,
   type EventSummary,
   type Speaker,
@@ -66,6 +68,7 @@ export const toolNames = [
   "get_event",
   "list_speakers",
   "get_community",
+  "get_guide",
 ] as const;
 
 export type ToolName = (typeof toolNames)[number];
@@ -178,6 +181,7 @@ export function createClient({
       ).speakers,
     getCommunity: (): Promise<Community> =>
       callTool("get_community", {}, communitySchema),
+    getGuide: (): Promise<Guide> => callTool("get_guide", {}, guideSchema),
   };
 }
 

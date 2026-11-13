@@ -25,6 +25,7 @@ allthings event latest              # the last one, with its video when there is
 allthings speakers react            # who has been on stage about react
 allthings rsvp next                 # open the next evening's page to say you're in
 allthings open latest               # open the last evening's page on allthings.dev
+allthings guide                     # conferences worth the trip, starred as Michelin stars restaurants
 allthings about                     # where to find everyone between evenings
 ```
 

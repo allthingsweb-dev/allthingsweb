@@ -28,6 +28,7 @@ import type { EventSummary } from "./schemas.ts";
 import {
   formatAuxStatus,
   formatCommunity,
+  formatGuide,
   formatEvent,
   formatEventSummary,
   formatEventList,
@@ -60,6 +61,7 @@ Usage
   ${commandName} speakers [search] [--limit <n>] [--json]
   ${commandName} rsvp <slug | next> [--print]
   ${commandName} open <slug | next | latest> [--print]
+  ${commandName} guide [--json]
   ${commandName} about [--json]
   ${commandName} mcp [--json]
   ${commandName} aux <command> [--json]
@@ -73,6 +75,7 @@ Examples
   ${commandName} speakers react              Who has been on stage about react
   ${commandName} rsvp next                   Open the next evening's page to say you're in
   ${commandName} open latest                 Open the last evening's page on allthings.dev
+  ${commandName} guide                       Conferences worth the trip, starred
   ${commandName} mcp                         Add allthings to Claude Code, Codex, VS Code or Cursor
   ${commandName} aux --help                 Set the room's lights at an evening that passes the aux
 
@@ -512,6 +515,7 @@ const commands = [
   "speakers",
   "rsvp",
   "open",
+  "guide",
   "about",
   "mcp",
   "aux",
@@ -653,6 +657,12 @@ export async function run(argv: string[], io: Io): Promise<ExitCode> {
       case "mcp": {
         if (rest.length > 0) usage(`"mcp" takes no arguments.`);
         io.stdout(mcpSetup(endpointFrom(io.env), values.json));
+        return ExitCode.Ok;
+      }
+      case "guide": {
+        if (rest.length > 0) usage(`"guide" takes no arguments.`);
+        const guide = await client.getGuide();
+        print(formatGuide(guide, color), guide);
         return ExitCode.Ok;
       }
       case "about": {
