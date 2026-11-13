@@ -492,6 +492,24 @@
         "https://github.com/lydiahallie",
         "https://bsky.app/profile/lydiahallie.com"
       ]
+    },
+    "james-grugett": {
+      "profileId": "7ee03efb-9e4a-44c5-8385-3f119dab6b54",
+      "sources": [
+        "https://www.youtube.com/watch?v=6EVhRDB0P-g",
+        "https://luma.com/d6hmyonq"
+      ]
+    },
+    "nipunn-koorapati": {
+      "profileId": "0d02e61b-aca8-49c0-abc8-43c6b80c0658",
+      "sources": [
+        "https://www.youtube.com/watch?v=6EVhRDB0P-g",
+        "https://luma.com/d6hmyonq"
+      ]
+    },
+    "steve-heffernan": {
+      "profileId": "458980d5-75c3-4b1f-9a55-2803d1a303e2",
+      "sources": ["https://www.youtube.com/watch?v=edOxB0lXFmo"]
     }
   },
   "events": [
@@ -652,7 +670,36 @@
     {
       "lumaEventId": "evt-TNS8NeNJwSPDKu5",
       "name": "React Bay Area at Mux",
-      "talks": [],
+      "talks": [
+        {
+          "title": "Implementing a shopping cart with React 19",
+          "format": "talk",
+          "description": "",
+          "speakers": [
+            {
+              "person": "sebastien-morel",
+              "role": "speaker"
+            }
+          ],
+          "sources": ["https://www.youtube.com/watch?v=edOxB0lXFmo"],
+          "confidence": "high",
+          "position": 0
+        },
+        {
+          "title": "Custom component-based media players",
+          "format": "talk",
+          "description": "",
+          "speakers": [
+            {
+              "person": "steve-heffernan",
+              "role": "speaker"
+            }
+          ],
+          "sources": ["https://www.youtube.com/watch?v=edOxB0lXFmo"],
+          "confidence": "high",
+          "position": 1
+        }
+      ],
       "people": [
         {
           "person": "erik-thorelli",
@@ -1352,7 +1399,53 @@
       "lumaEventId": "evt-xWl1tkPwl1b8zbI",
       "name": "All Things Web at Convex",
       "recordingUrl": "https://www.youtube.com/watch?v=6EVhRDB0P-g",
-      "talks": [],
+      "talks": [
+        {
+          "title": "AI, IDEs, and the Future of Code Understanding",
+          "format": "talk",
+          "description": "",
+          "speakers": [
+            {
+              "person": "james-grugett",
+              "role": "speaker"
+            }
+          ],
+          "sources": ["https://www.youtube.com/watch?v=6EVhRDB0P-g"],
+          "confidence": "high",
+          "position": 0
+        },
+        {
+          "title": "Technical Leadership in the world of AI Coding Agents",
+          "format": "talk",
+          "description": "",
+          "speakers": [
+            {
+              "person": "nipunn-koorapati",
+              "role": "speaker"
+            }
+          ],
+          "sources": ["https://www.youtube.com/watch?v=6EVhRDB0P-g"],
+          "confidence": "high",
+          "position": 1
+        },
+        {
+          "title": "Build your own image optimizer",
+          "format": "talk",
+          "description": "",
+          "speakers": [
+            {
+              "person": "andre-landgraf",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://www.youtube.com/watch?v=6EVhRDB0P-g",
+            "https://luma.com/d6hmyonq"
+          ],
+          "confidence": "high",
+          "position": 2
+        }
+      ],
       "people": [
         {
           "person": "erik-thorelli",

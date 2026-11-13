@@ -708,7 +708,6 @@ describe("core/backfill/lineups.json", () => {
     expect(subset.events.filter(erikMcOnly).map((event) => event.name)).toEqual(
       [
         "React Bay Area at Sanity",
-        "React Bay Area at Mux",
         "React Bay Area at Cisco Meraki",
         "Open Source Hackathon",
         "Pre Next.js Conf Meetup",
@@ -718,7 +717,6 @@ describe("core/backfill/lineups.json", () => {
         "All Things Web at Sanity",
         "All Things Web at Sentry",
         "All Things Web Hack Evening",
-        "All Things Web at Convex",
         "AI x All Things Web",
         "Future of Web Hackathon",
         "All Things Web Show & Tell",
@@ -773,6 +771,15 @@ describe("core/backfill/lineups.json", () => {
           "organizer andre-landgraf",
         ],
       ],
+      // Its running order, as the recording's chapters show it.
+      [
+        "React Bay Area at Mux",
+        [
+          "Implementing a shopping cart with React 19",
+          "Custom component-based media players",
+        ],
+        ["mc erik-thorelli"],
+      ],
       [
         "Effect San Francisco",
         [
@@ -809,6 +816,16 @@ describe("core/backfill/lineups.json", () => {
         ["co-host neha-varshneya"],
       ],
       ["NextDev.fm Live", ["NextDev.fm Live"], ["mc erik-thorelli"]],
+      // Its running order, as the recording's chapters show it.
+      [
+        "All Things Web at Convex",
+        [
+          "AI, IDEs, and the Future of Code Understanding",
+          "Technical Leadership in the world of AI Coding Agents",
+          "Build your own image optimizer",
+        ],
+        ["mc erik-thorelli"],
+      ],
       // The AI panel (Erik, 2026-10-10); its title is a placeholder.
       [
         "All Things Expo!",
@@ -882,6 +899,7 @@ describe("core/backfill/lineups.json", () => {
       "evan-bacon",
       "greg-pstrucha",
       "ivan-burazin",
+      "james-grugett",
       "jeff-huber",
       "kevin-whinnery",
       "kiet-ho",
@@ -896,6 +914,7 @@ describe("core/backfill/lineups.json", () => {
       "neha-varshneya",
       "nicholas-pipitone",
       "nikhil-gupta",
+      "nipunn-koorapati",
       "oscar-newman",
       "rhys-sullivan",
       "rostislav-melkumyan",
@@ -903,8 +922,10 @@ describe("core/backfill/lineups.json", () => {
       "sam-bhagwat",
       "sam-goodwin",
       "sebastian-lorenz",
+      "sebastien-morel",
       "shane-thomas",
       "simon-farshid",
+      "steve-heffernan",
       "ted-nyman",
       "tyler-slaton",
     ]);
