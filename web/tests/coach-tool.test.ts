@@ -81,12 +81,12 @@ describe("coach_talk", () => {
     }
   });
 
-  test("its largest call fits in a request body", () => {
+  test("its largest call fits in a request body, however it is escaped", () => {
     // Every field at its limit, in a character that takes three bytes as
-    // UTF-8: the most a body can hold that the tool accepts, but for JSON's
-    // two-character escapes, which are fewer bytes.
+    // UTF-8, or six when a client escapes it as 語: the most a body can
+    // hold that the tool accepts.
     const full = (max: number) => "語".repeat(max);
-    const body = JSON.stringify({
+    const call = JSON.stringify({
       jsonrpc: "2.0",
       id: 1,
       method: "tools/call",
@@ -103,9 +103,13 @@ describe("coach_talk", () => {
         },
       },
     });
-    expect(new TextEncoder().encode(body).length).toBeLessThan(
-      maxRequestBodySize,
-    );
+    const escaped = call.replaceAll("語", "\\u8a9e");
+    expect(JSON.parse(escaped)).toEqual(JSON.parse(call));
+    for (const body of [call, escaped]) {
+      expect(new TextEncoder().encode(body).length).toBeLessThan(
+        maxRequestBodySize,
+      );
+    }
   });
 
   test("is never answered through the page store", () => {

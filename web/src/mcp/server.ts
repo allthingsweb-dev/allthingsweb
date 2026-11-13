@@ -15,11 +15,12 @@ export const maxToolInputElements = 64;
  * with its capabilities is a few KiB and most tool calls far less; the
  * largest is coach_talk's with every field at its limit
  * (allthings-core/src/coaching.ts `limits`, 83,200 characters), which
- * fits as JSON even when every character takes two bytes escaped or three
- * as UTF-8. A larger body is answered 413 before it's parsed
- * (GHSA-46jr-4wx8-v453); the SDK's own default is 4 MiB.
+ * fits as JSON however a client writes it, even with every character
+ * escaped as `\uXXXX`: six bytes each, 499,200 in all. A larger body is
+ * answered 413 before it's parsed (GHSA-46jr-4wx8-v453); the SDK's own
+ * default is 4 MiB.
  */
-export const maxRequestBodySize = 256 * 1024;
+export const maxRequestBodySize = 512 * 1024;
 
 /**
  * The MCP server: the official SDK's web-standard handler, as the app serves
