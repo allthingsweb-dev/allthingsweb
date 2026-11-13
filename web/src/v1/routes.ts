@@ -1,8 +1,10 @@
+import { readGuide, toGuide } from "allthings-core/src/guide.ts";
 import { type Cause, Effect, Layer, Option } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import { CacheControl } from "../cache.ts";
 import { repositories } from "../database.ts";
+import { Site } from "../site.ts";
 import { V1Data } from "./data.ts";
 import { eventDetailsJson, eventJson, speakersJson } from "./json.ts";
 import { isPostgresUuid } from "./uuid.ts";
@@ -97,4 +99,22 @@ const speakers = HttpRouter.add(
   ),
 );
 
-export const v1Routes = Layer.mergeAll(events, eventById, speakers);
+/**
+ * The allthings guide, as the public contract has it (core's src/guide.ts
+ * and src/contract.ts), the same body get_guide answers with. It is new,
+ * so it has no app shape to keep; it reads no database.
+ */
+const guide = HttpRouter.add(
+  "GET",
+  "/api/v1/guide",
+  Effect.gen(function* () {
+    const { origin } = yield* Site;
+    return yield* respond(
+      toGuide(yield* readGuide, origin),
+      200,
+      CacheControl.publicData,
+    );
+  }),
+);
+
+export const v1Routes = Layer.mergeAll(events, eventById, speakers, guide);

@@ -7,6 +7,7 @@ import { asOf } from "allthings-core/src/clock.ts";
 import * as Contract from "allthings-core/src/contract.ts";
 import type { DataSourceError } from "allthings-core/src/errors.ts";
 import { Events } from "allthings-core/src/events.ts";
+import { readGuide, toGuide } from "allthings-core/src/guide.ts";
 import * as Mappers from "allthings-core/src/mappers.ts";
 import { Speakers } from "allthings-core/src/speakers.ts";
 import { Effect, Schema } from "effect";
@@ -33,7 +34,7 @@ export type ToolProgram = Effect.Effect<CallToolResult, never, Site>;
 /** Runs a tool's program with the isolate's services. */
 export type RunTool = (program: ToolProgram) => Promise<CallToolResult>;
 
-/** The four public tools' inputs, as MCP clients send them. */
+/** The public tools' inputs, as MCP clients send them. */
 export const toolInputs = {
   list_events: z.object({
     when: z
@@ -50,6 +51,7 @@ export const toolInputs = {
     limit: z.number().int().min(1).max(200).default(50),
   }),
   get_community: z.object({}),
+  get_guide: z.object({}),
 } as const;
 
 export type ToolName = keyof typeof toolInputs;
@@ -194,6 +196,12 @@ const getCommunity: ToolProgram = Site.useSync(({ origin }) =>
   succeed(community(origin)),
 );
 
+/** The guide as of the clock (core's src/guide.ts): it reads no database. */
+const getGuide: ToolProgram = Effect.gen(function* () {
+  const { origin } = yield* Site;
+  return succeed(toGuide(yield* readGuide, origin));
+});
+
 /**
  * The program that answers `name` with `input` (untrusted: it is parsed
  * with the tool's schema first), or undefined for input the tool refuses.
@@ -223,12 +231,16 @@ export function toolProgram(
       return toolInputs.get_community.safeParse(input).success
         ? getCommunity
         : undefined;
+    case "get_guide":
+      return toolInputs.get_guide.safeParse(input).success
+        ? getGuide
+        : undefined;
     default:
       return undefined;
   }
 }
 
-/** Registers the four public tools on `server`; `call` answers them. */
+/** Registers the public tools on `server`; `call` answers them. */
 export function registerTools(server: McpServer, call: CallTool): void {
   server.registerTool(
     "list_events",
@@ -284,5 +296,18 @@ export function registerTools(server: McpServer, call: CallTool): void {
       annotations: readOnly,
     },
     () => call("get_community", {}),
+  );
+
+  server.registerTool(
+    "get_guide",
+    {
+      title: "The allthings guide",
+      description:
+        "Conferences and happenings beyond allthings' own evenings worth going to, starred as the Michelin guide stars restaurants: 3 stars are worth a special journey, 2 a detour, 1 a stop. Each with its city, why, who runs it, its official site, and its next edition's dates once announced.",
+      inputSchema: toolInputs.get_guide,
+      outputSchema: outputSchema(Schema.Struct(Contract.Guide.fields)),
+      annotations: readOnly,
+    },
+    () => call("get_guide", {}),
   );
 }

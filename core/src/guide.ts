@@ -1,8 +1,12 @@
 import { DateTime, Effect, Schema } from "effect";
 import guideFile from "../backfill/guide.json" with { type: "json" };
 import { asOf } from "./clock.ts";
-import { HttpUrl } from "./contract.ts";
+import type * as Contract from "./contract.ts";
+import { HttpUrl, Stars } from "./contract.ts";
 import { addDays, sfDay } from "./readiness/calendar.ts";
+
+/** How far a happening is worth going, as Michelin's stars say it (the contract's). */
+export { Stars } from "./contract.ts";
 
 /**
  * The allthings guide: happenings beyond our evenings worth going to,
@@ -19,9 +23,9 @@ import { addDays, sfDay } from "./readiness/calendar.ts";
  * written only once its organizers announce them.
  */
 
-/** How far a happening is worth going, as Michelin's stars say it. */
-export const Stars = Schema.Literals([1, 2, 3]);
-export type Stars = typeof Stars.Type;
+/** What the guide is, in two sentences: for its page and its readers. */
+export const guideAbout =
+  "Happenings worth the trip, starred the way the Michelin guide stars a restaurant: three stars are worth a special journey, two a detour, one a stop. The stars are the allthings organizers' call, for the people, the talks and what gets built there, never a count or a vote.";
 
 /** What each star count means, in the guide's words. */
 export const starMeaning: Readonly<Record<Stars, string>> = {
@@ -213,6 +217,38 @@ export const readGuide: Effect.Effect<ReadonlyArray<StarGroup>> = Effect.map(
   asOf,
   guideAt,
 );
+
+/**
+ * The guide as the public contract serves it (src/contract.ts): the MCP
+ * server's get_guide and /api/v1/guide, with its page and each entry's
+ * place on it under `origin`.
+ */
+export function toGuide(
+  groups: ReadonlyArray<StarGroup>,
+  origin: string,
+): Contract.Guide {
+  const url = `${origin}/guide`;
+  return {
+    about: guideAbout,
+    url,
+    entries: groups.flatMap((group) =>
+      group.entries.map(
+        (entry): Contract.GuideEntry => ({
+          id: entry.id,
+          name: entry.name,
+          stars: entry.stars,
+          meaning: group.meaning,
+          city: entry.city,
+          organizer: entry.organizer,
+          url: entry.url,
+          why: entry.why,
+          next: entry.next,
+          guideUrl: `${url}#${entry.id}`,
+        }),
+      ),
+    ),
+  };
+}
 
 const sanFrancisco = DateTime.zoneMakeNamedUnsafe("America/Los_Angeles");
 

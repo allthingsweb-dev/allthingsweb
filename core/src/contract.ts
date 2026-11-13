@@ -161,7 +161,60 @@ export const Community = Schema.Struct({
   }),
 });
 
+const isoDay = new RegExp(`^${isoDate}$`);
+
+/** A day on the calendar, YYYY-MM-DD, as `z.iso.date()` accepts. */
+export const IsoDay = Schema.String.check(
+  Schema.isPattern(isoDay, {
+    expected: "an ISO 8601 calendar day",
+    toJsonSchema: () => ({ format: "date", pattern: isoDay.source }),
+  }),
+);
+
+/** How far a happening in the guide is worth going, as Michelin's stars say it. */
+export const Stars = Schema.Literals([1, 2, 3]).annotate({
+  description:
+    "3: worth a special journey. 2: worth a detour. 1: worth a stop.",
+});
+
+export const GuideEntry = Schema.Struct({
+  id: Schema.String.annotate({
+    description: "Stable identifier; the guide page's anchor.",
+  }),
+  name: Schema.String,
+  stars: Stars,
+  meaning: Schema.String.annotate({
+    description:
+      "What its stars mean: worth a special journey, a detour or a stop.",
+  }),
+  city: Schema.String,
+  organizer: Schema.String.annotate({ description: "Who runs it." }),
+  url: HttpUrl.annotate({ description: "Its official site." }),
+  why: Schema.String.annotate({
+    description: "Why it's worth the trip, in one sentence.",
+  }),
+  next: Schema.NullOr(Schema.Struct({ from: IsoDay, to: IsoDay })).annotate({
+    description:
+      "The next edition's days where it happens, both included, once its organizers announce them and until it ends; null otherwise.",
+  }),
+  guideUrl: HttpUrl.annotate({
+    description: "Its entry in the guide on allthings.dev.",
+  }),
+});
+
+export const Guide = Schema.Struct({
+  about: Schema.String,
+  url: HttpUrl.annotate({ description: "The guide on allthings.dev." }),
+  entries: Schema.Array(GuideEntry).annotate({
+    description:
+      "Three stars first, then two, then one; within each, dated entries soonest first, then the rest by name.",
+  }),
+});
+
 export type EventStatus = typeof EventStatus.Type;
+export type Stars = typeof Stars.Type;
+export type GuideEntry = typeof GuideEntry.Type;
+export type Guide = typeof Guide.Type;
 export type PersonLinks = typeof PersonLinks.Type;
 export type EventSummary = typeof EventSummary.Type;
 export type TalkSpeaker = typeof TalkSpeaker.Type;
