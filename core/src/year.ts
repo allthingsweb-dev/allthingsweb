@@ -1,8 +1,10 @@
-import { Context, type DateTime, Effect, Layer, Option, Schema } from "effect";
+import { Context, DateTime, Effect, Layer, Option, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
 import { held, type Tally, TallyFields, tally } from "./about.ts";
-import { soonestFirst, talksOf, yearOf } from "./catalog.ts";
+import { calendarZone, soonestFirst, talksOf, yearOf } from "./catalog.ts";
+import type * as Contract from "./contract.ts";
+import { eventUrl } from "./mappers.ts";
 import { asOf } from "./clock.ts";
 import { eveningPhoto, wallPicksJson } from "./community.ts";
 import { DataSourceError } from "./errors.ts";
@@ -119,6 +121,46 @@ export function toYear(
     })),
     years: row.years,
   });
+}
+
+/**
+ * `view` as the public contract has it (`Contract.Year`), for get_year and
+ * /api/v1/years/:year: its pages, people's and photos at absolute URLs on
+ * the site at `origin`, and nothing the page leaves out.
+ */
+export function yearContract(view: YearView, origin: string): Contract.Year {
+  return {
+    year: view.year,
+    url: `${origin}/year/${view.year}`,
+    timeZone: calendarZone,
+    tally: view.tally,
+    evenings: view.evenings.map(
+      ({ evening, photo, onStage, guests }): Contract.YearEvening => ({
+        slug: evening.slug,
+        name: evening.name,
+        topic: evening.topic ?? null,
+        url: eventUrl(origin, evening.slug),
+        startsAt: DateTime.formatIso(evening.startsAt),
+        neighborhood: evening.neighborhood,
+        hosts: evening.hosts,
+        onStage: onStage.map((person) => ({
+          name: person.name,
+          url: `${origin}/people/${encodeURIComponent(person.slug)}`,
+        })),
+        guests,
+        photo:
+          photo === null
+            ? null
+            : {
+                url: photo.url,
+                alt: photo.alt,
+                width: photo.width,
+                height: photo.height,
+              },
+      }),
+    ),
+    years: view.years,
+  };
 }
 
 export interface YearShape {
