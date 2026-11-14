@@ -1,0 +1,16 @@
+{
+  "name": "allthings-plugin-manifests",
+  "private": true,
+  "description": "Every agent's manifest for the allthings plugin (plugins/allthings), written from one definition and held to it by a test.",
+  "type": "module",
+  "scripts": {
+    "write": "bun src/write.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.2",
+    "ajv": "8.20.0",
+    "typescript": "7.0.2"
+  }
+}

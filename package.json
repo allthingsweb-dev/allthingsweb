@@ -1,7 +1,13 @@
 {
   "name": "allthings",
   "private": true,
-  "workspaces": ["brand", "core", "tools/xss-scan", "web"],
+  "workspaces": [
+    "brand",
+    "core",
+    "tools/plugin-manifests",
+    "tools/xss-scan",
+    "web"
+  ],
   "scripts": {
     "lint": "oxlint",
     "typecheck": "tsc --noEmit"
