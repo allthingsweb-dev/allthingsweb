@@ -255,7 +255,7 @@ async function main(): Promise<void> {
     item,
     vault,
     notes:
-      "The draft preview's connection to production for draft collaboration (its Worker's Collab Hyperdrive). Rotate with infra/scripts/draft-collab.ts in allthings-sf/allthingsweb.",
+      "The draft preview's connection to production for draft collaboration (its Worker's Collab Hyperdrive). Rotate with infra/scripts/draft-collab.ts in allthings-sf/allthings.",
   });
   console.log(
     `✓ ${DRAFT_COLLAB} ${created ? "created" : "has a new password"}, column grants on ${Object.keys(DRAFT_COLLAB_GRANTS).length} tables; NEON_COLLAB_URL and 1Password ("${item}" in ${vault}) updated`,

@@ -14,10 +14,10 @@
   "homepage": "https://allthings.dev",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/allthings-sf/allthingsweb.git",
+    "url": "git+https://github.com/allthings-sf/allthings.git",
     "directory": "cli"
   },
-  "bugs": "https://github.com/allthings-sf/allthingsweb/issues",
+  "bugs": "https://github.com/allthings-sf/allthings/issues",
   "type": "module",
   "bin": {
     "allthings": "./dist/index.js",

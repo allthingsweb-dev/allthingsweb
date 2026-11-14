@@ -127,7 +127,7 @@ async function main(): Promise<void> {
       item: spec.item,
       vault: VAULT,
       notes:
-        "The studio's token for draft collaboration's edge: the Zero Trust list of collaborators, and ending Access sessions. Rotate with infra/scripts/zero-trust-token.sh --rotate in allthings-sf/allthingsweb.",
+        "The studio's token for draft collaboration's edge: the Zero Trust list of collaborators, and ending Access sessions. Rotate with infra/scripts/zero-trust-token.sh --rotate in allthings-sf/allthings.",
     });
     console.log(`✓ stored the token in 1Password ("${spec.item}" in ${VAULT})`);
   } else {

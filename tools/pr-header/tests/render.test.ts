@@ -13,9 +13,9 @@ import type { PrState } from "../src/state.ts";
 const previewUrl = "https://allthings-web-pr-52-abc123.allthings.workers.dev";
 
 const pr: PrState = {
-  repo: { owner: "allthings-sf", name: "allthingsweb" },
+  repo: { owner: "allthings-sf", name: "allthings" },
   number: 52,
-  url: "https://github.com/allthings-sf/allthingsweb/pull/52",
+  url: "https://github.com/allthings-sf/allthings/pull/52",
   state: "open",
   isDraft: false,
   mergeState: "clean",
@@ -50,14 +50,14 @@ describe("the PR header", () => {
 
   test("links the CodeRabbit Change Stack for the PR", () => {
     expect(changeStackUrl(pr)).toBe(
-      "https://app.coderabbit.ai/change-stack/allthings-sf/allthingsweb/pull/52",
+      "https://app.coderabbit.ai/change-stack/allthings-sf/allthings/pull/52",
     );
   });
 
   test("links each badge to its drawn shield on main, versioned by its drawing", () => {
     for (const { src } of badges(renderHeader(pr))) {
       expect(src.origin + src.pathname).toMatch(
-        /^https:\/\/raw\.githubusercontent\.com\/allthings-sf\/allthingsweb\/main\/tools\/pr-header\/shields\/[a-z0-9-]+\.svg$/,
+        /^https:\/\/raw\.githubusercontent\.com\/allthings-sf\/allthings\/main\/tools\/pr-header\/shields\/[a-z0-9-]+\.svg$/,
       );
       expect(src.searchParams.get("v")).toMatch(/^[0-9a-f]{12}$/);
     }

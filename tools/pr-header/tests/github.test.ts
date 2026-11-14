@@ -6,12 +6,12 @@ import {
   type PullRequestData,
 } from "../src/github.ts";
 
-const repo = { owner: "allthings-sf", name: "allthingsweb" };
+const repo = { owner: "allthings-sf", name: "allthings" };
 
 function data(overrides: Partial<PullRequestData> = {}): PullRequestData {
   return {
     number: 52,
-    url: "https://github.com/allthings-sf/allthingsweb/pull/52",
+    url: "https://github.com/allthings-sf/allthings/pull/52",
     state: "OPEN",
     isDraft: false,
     mergeStateStatus: "CLEAN",
@@ -153,7 +153,7 @@ describe("summarizing a pull request", () => {
       "<!-- walkthrough_start -->\n\nAdds a thing.\n\n<!-- walkthrough_end -->";
     const comment = (login: string, body: string, n: number) => ({
       author: { login },
-      url: `https://github.com/allthings-sf/allthingsweb/pull/52#issuecomment-${n}`,
+      url: `https://github.com/allthings-sf/allthings/pull/52#issuecomment-${n}`,
       body,
     });
     const read = (nodes: ReturnType<typeof comment>[]) =>
@@ -168,7 +168,7 @@ describe("summarizing a pull request", () => {
         comment("coderabbitai", walkthrough, 3),
       ]),
     ).toMatchObject({
-      url: "https://github.com/allthings-sf/allthingsweb/pull/52#issuecomment-3",
+      url: "https://github.com/allthings-sf/allthings/pull/52#issuecomment-3",
       summary: "Adds a thing.",
     });
   });
@@ -260,7 +260,7 @@ describe("loading a pull request", () => {
   test("follows comment pages until it finds CodeRabbit's walkthrough", async () => {
     const comment = (login: string, body: string) => ({
       author: { login },
-      url: "https://github.com/allthings-sf/allthingsweb/pull/52#issuecomment-1",
+      url: "https://github.com/allthings-sf/allthings/pull/52#issuecomment-1",
       body,
     });
     const walkthrough =
@@ -306,7 +306,7 @@ describe("loading a pull request", () => {
       nodes: [
         {
           author: { login: "someone" },
-          url: "https://github.com/allthings-sf/allthingsweb/pull/52#issuecomment-1",
+          url: "https://github.com/allthings-sf/allthings/pull/52#issuecomment-1",
           body: "Hi",
         },
       ],
