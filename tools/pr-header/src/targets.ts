@@ -7,6 +7,7 @@ export type Targets =
 type Payload = {
   pull_request?: { number: number };
   issue?: { number: number; pull_request?: unknown };
+  comment?: { body?: string; user?: { login: string } };
   check_run?: { head_sha: string; pull_requests: { number: number }[] };
   sha?: string;
   deployment?: { sha: string };
@@ -21,8 +22,12 @@ export function targetsFor(eventName: string, payload: Payload): Targets {
         ? { kind: "numbers", numbers: [payload.pull_request.number] }
         : { kind: "numbers", numbers: [] };
     case "issue_comment":
-      // Comments on issues, not pull requests, have nothing to refresh.
-      return payload.issue?.pull_request
+      // Comments on issues, not pull requests, have nothing to refresh. Nor
+      // does CodeRabbit's own comment or one asking it for a review: a
+      // review is starting, and CodeRabbit marks its pre-merge checks
+      // Inconclusive when the description changes under it. Its check
+      // finishing refreshes the header.
+      return payload.issue?.pull_request && !aboutCodeRabbit(payload.comment)
         ? { kind: "numbers", numbers: [payload.issue.number] }
         : { kind: "numbers", numbers: [] };
     case "check_run": {
@@ -46,4 +51,13 @@ export function targetsFor(eventName: string, payload: Payload): Targets {
       // catches review threads resolved without an event of their own.
       return { kind: "all-open" };
   }
+}
+
+/** A comment CodeRabbit wrote, or one that asks it for something. */
+function aboutCodeRabbit(comment: Payload["comment"]): boolean {
+  if (!comment) return false;
+  return (
+    comment.user?.login === "coderabbitai[bot]" ||
+    /@coderabbitai\b/i.test(comment.body ?? "")
+  );
 }

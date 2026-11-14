@@ -1,12 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import {
   fetchPullRequest,
+  reviewGrace,
+  reviewPending,
   summarize,
   type GitHub,
   type PullRequestData,
 } from "../src/github.ts";
 
 const repo = { owner: "allthings-sf", name: "allthingsweb" };
+const committed = "2026-11-13T22:00:00Z";
 
 function data(overrides: Partial<PullRequestData> = {}): PullRequestData {
   return {
@@ -24,7 +27,14 @@ function data(overrides: Partial<PullRequestData> = {}): PullRequestData {
     comments: { nodes: [] },
     reviewThreads: { nodes: [] },
     commits: {
-      nodes: [{ commit: { statusCheckRollup: { contexts: { nodes: [] } } } }],
+      nodes: [
+        {
+          commit: {
+            committedDate: committed,
+            statusCheckRollup: { contexts: { nodes: [] } },
+          },
+        },
+      ],
     },
     ...overrides,
   };
@@ -45,7 +55,14 @@ function checkRun(name: string, status: string, conclusion: string | null) {
 
 function contexts(...nodes: ReturnType<typeof checkRun>[]) {
   return {
-    nodes: [{ commit: { statusCheckRollup: { contexts: { nodes } } } }],
+    nodes: [
+      {
+        commit: {
+          committedDate: committed,
+          statusCheckRollup: { contexts: { nodes } },
+        },
+      },
+    ],
   };
 }
 
@@ -333,5 +350,31 @@ describe("loading a pull request", () => {
     );
     // The first page, then the one that repeated its cursor.
     expect(requests).toBe(2);
+  });
+});
+
+describe("waiting for CodeRabbit", () => {
+  const at = (ms: number) => new Date(Date.parse(committed) + ms);
+
+  test("holds the header while CodeRabbit's check on the head runs", () => {
+    const pr = data({
+      commits: contexts(checkRun("CodeRabbit", "IN_PROGRESS", null)),
+    });
+    expect(reviewPending(pr, at(reviewGrace * 4))).toBe(true);
+  });
+
+  test("writes once CodeRabbit's check has finished", () => {
+    const pr = data({
+      commits: contexts(checkRun("CodeRabbit", "COMPLETED", "SUCCESS")),
+    });
+    expect(reviewPending(pr, at(1000))).toBe(false);
+  });
+
+  test("expects a review on a new head, but not forever", () => {
+    const pr = data({
+      commits: contexts(checkRun("Lint", "COMPLETED", "SUCCESS")),
+    });
+    expect(reviewPending(pr, at(60 * 1000))).toBe(true);
+    expect(reviewPending(pr, at(reviewGrace))).toBe(false);
   });
 });

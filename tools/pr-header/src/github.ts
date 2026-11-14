@@ -67,6 +67,7 @@ export const pullRequestQuery = `
         commits(last: 1) {
           nodes {
             commit {
+              committedDate
               statusCheckRollup {
                 contexts(first: 100) {
                   nodes {
@@ -123,6 +124,7 @@ export type PullRequestData = {
   commits: {
     nodes: {
       commit: {
+        committedDate: string;
         statusCheckRollup: { contexts: { nodes: Context[] } } | null;
       };
     }[];
@@ -263,6 +265,30 @@ export function summarize(
     },
     checks,
   };
+}
+
+/**
+ * How long after a commit the header still expects CodeRabbit to start
+ * reviewing it, when no CodeRabbit check is on it yet.
+ */
+export const reviewGrace = 15 * 60 * 1000;
+
+/**
+ * Whether CodeRabbit is reviewing the PR's head, or is about to. CodeRabbit
+ * marks its pre-merge checks Inconclusive ("inputs changed after this check
+ * was assessed") when the description changes while it reviews, so the
+ * header leaves the description alone until CodeRabbit's check on the head
+ * has finished. Its check finishing triggers the next refresh. A head with no
+ * CodeRabbit check after `reviewGrace` is one CodeRabbit won't review.
+ */
+export function reviewPending(pr: PullRequestData, now: Date): boolean {
+  const head = pr.commits.nodes[0]?.commit;
+  if (!head) return false;
+  const check = (head.statusCheckRollup?.contexts.nodes ?? []).find(
+    (c) => contextName(c) === "CodeRabbit",
+  );
+  if (check) return contextOutcome(check) === "running";
+  return now.getTime() - Date.parse(head.committedDate) < reviewGrace;
 }
 
 /** The newest preview deployment for a commit, as the Deploy workflow records it. */

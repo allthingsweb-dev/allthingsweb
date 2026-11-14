@@ -20,6 +20,27 @@ describe("which PRs an event refreshes", () => {
     ).toEqual({ kind: "numbers", numbers: [9] });
   });
 
+  test("CodeRabbit's comments, and requests for it, refresh nothing", () => {
+    const issue = { number: 9, pull_request: {} };
+    const comment = (login: string, body: string) =>
+      targetsFor("issue_comment", {
+        issue,
+        comment: { body, user: { login } },
+      });
+    expect(comment("coderabbitai[bot]", "Review triggered.")).toEqual({
+      kind: "numbers",
+      numbers: [],
+    });
+    expect(comment("esthor", "@coderabbitai full review")).toEqual({
+      kind: "numbers",
+      numbers: [],
+    });
+    expect(comment("esthor", "Looks good to me.")).toEqual({
+      kind: "numbers",
+      numbers: [9],
+    });
+  });
+
   test("comments on plain issues refresh nothing", () => {
     expect(targetsFor("issue_comment", { issue: { number: 3 } })).toEqual({
       kind: "numbers",

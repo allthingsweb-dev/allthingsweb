@@ -2,6 +2,7 @@ import {
   createGitHub,
   fetchPullRequest,
   previewDeployment,
+  reviewPending,
   summarize,
   type GitHub,
   type Repo,
@@ -45,6 +46,10 @@ async function refresh(
   number: number,
 ): Promise<void> {
   const pr = await fetchPullRequest(github, repo, number);
+  if (reviewPending(pr, new Date())) {
+    console.log(`#${number}: CodeRabbit is reviewing; the header waits`);
+    return;
+  }
   const deployment = await previewDeployment(github, repo, pr.headRefOid);
   const body = withHeader(
     pr.body,
