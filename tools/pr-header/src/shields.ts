@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as fontkit from "fontkit";
 import tokenFile from "../../../brand/all-things.tokens.json" with { type: "json" };
-import { faceFile, type Face, type Tone } from "./faces.ts";
+import { explainChangeFile, faceFile, type Face, type Tone } from "./faces.ts";
 
 /**
  * Draws the header's shields as SVG, in the allthings system: a label in
@@ -49,13 +49,18 @@ export const palette = {
   coderabbit: "#FF570A",
 } as const;
 
-/** Status fills. Each carries white text at APCA Lc 75 and WCAG 2.2 AA. */
+/**
+ * Status fills, one family: about the same OKLCH lightness (0.545 to 0.57)
+ * and a like chroma, so no status shouts over another and each sits well
+ * beside the Glow and Bridge slash. Each is as light as it can be while
+ * white text on it keeps APCA Lc 77 and WCAG 4.5:1.
+ */
 export const tones = {
-  good: "#276749",
-  wait: "#975A16",
-  bad: token("bridgeDeep"),
-  info: token("violet"),
-  idle: token("karlText"),
+  good: "#1A8641",
+  wait: "#A46805",
+  bad: "#BF3A39",
+  info: "#7258CA",
+  idle: "#766F69",
 } as const satisfies Record<Tone, string>;
 
 /** The label block, its text and the slash, on each GitHub theme. */
@@ -82,8 +87,13 @@ export const metrics = {
   /** The slash leans as the a/ mark's does, and is about as heavy. */
   slashLean: 195.46 / 784,
   slashWidth: 3.4,
+  /** The page shows through either side of the slash, so it stands apart
+   * from any fill beside it. */
+  slashGap: 1.2,
   /** The CodeRabbit label's orange frame. */
   frame: 1.5,
+  /** The Explain Change shield's arrow. */
+  arrowWidth: 11,
   /** The a/ mark's height on the preview shield. */
   markHeight: 13,
 } as const;
@@ -161,22 +171,28 @@ function escapeXml(text: string): string {
     .replace(/"/g, "&quot;");
 }
 
-/** One shield as a standalone SVG document. */
-export function drawShield(face: Face, fonts: Fonts): string {
-  const { height: h, padding } = metrics;
+/**
+ * The label block, the slash and where the second block starts, for a label
+ * in either style. The page shows through a hairline either side of the
+ * slash, so the slash reads against any fill beside it.
+ */
+function labelAndSlash(
+  text: string,
+  style: "allthings" | "coderabbit",
+  withMark: boolean,
+  fonts: Fonts,
+): { parts: string[]; secondStart: number; secondTop: number } {
+  const { height: h, padding, slashGap: gap } = metrics;
   const lean = metrics.slashLean * h;
-  const coderabbit = face.label === "coderabbit";
-  const withMark = face.label === "preview";
+  const coderabbit = style === "coderabbit";
 
-  // The label block.
   let x = padding + (coderabbit ? metrics.frame : 0);
-  const markScale = metrics.markHeight / 784;
   const mark = withMark ? markPaths() : null;
   const markAt = x;
   if (mark) x += mark.width * metrics.markHeight + 5;
   const label = outline(
     fonts.label,
-    face.label.toUpperCase(),
+    text.toUpperCase(),
     metrics.labelSize,
     metrics.labelTracking,
     x,
@@ -187,20 +203,10 @@ export function drawShield(face: Face, fonts: Fonts): string {
   const slashTop = slashBottom + lean;
   const slashEnd = slashBottom + metrics.slashWidth;
 
-  const message = outline(
-    fonts.message,
-    face.message,
-    metrics.messageSize,
-    0,
-    slashEnd + lean / 2 + padding,
-    baseline(fonts.message, metrics.messageSize, false),
-  );
-  const width = Math.ceil(message.width + slashEnd + lean / 2 + padding * 2);
-
   const labelBlock = polygon([
     [0, 0],
-    [slashTop, 0],
-    [slashBottom, h],
+    [slashTop - gap, 0],
+    [slashBottom - gap, h],
     [0, h],
   ]);
   const slash = polygon([
@@ -209,22 +215,15 @@ export function drawShield(face: Face, fonts: Fonts): string {
     [slashTop + metrics.slashWidth, 0],
     [slashEnd, h],
   ]);
-  const messageBlock = polygon([
-    [slashTop + metrics.slashWidth, 0],
-    [width, 0],
-    [width, h],
-    [slashEnd, h],
-  ]);
 
-  const title = escapeXml(`${face.label}: ${face.message}`);
   const parts: string[] = [];
   if (coderabbit) {
     const f = metrics.frame;
-    // The white label sits inside an orange frame that runs into the slash.
+    // The white label sits inside an orange frame beside the orange slash.
     const inner = polygon([
       [f, f],
-      [slashTop - lean * (f / h) - 0.01, f],
-      [slashBottom + lean * (f / h), h - f],
+      [slashTop - gap - f - lean * (f / h), f],
+      [slashBottom - gap - f + lean * (f / h), h - f],
       [f, h - f],
     ]);
     parts.push(
@@ -241,21 +240,116 @@ export function drawShield(face: Face, fonts: Fonts): string {
     );
     if (mark) {
       const top = (h - metrics.markHeight) / 2;
+      const scale = round((metrics.markHeight / 784) * 1000) / 1000;
       parts.push(
-        `<g transform="translate(${round(markAt)} ${round(top)}) scale(${round(markScale * 1000) / 1000})"><path class="t" d="${mark.letter}"/><path class="s" d="${mark.slash}"/></g>`,
+        `<g transform="translate(${round(markAt)} ${round(top)}) scale(${scale})"><path class="t" d="${mark.letter}"/><path class="s" d="${mark.slash}"/></g>`,
       );
     }
   }
+  return {
+    parts,
+    secondStart: slashEnd + gap,
+    secondTop: slashTop + metrics.slashWidth + gap,
+  };
+}
+
+/** A block from just after the slash to the shield's right edge. */
+function secondBlock(
+  secondStart: number,
+  secondTop: number,
+  width: number,
+): string {
+  const h = metrics.height;
+  return polygon([
+    [secondTop, 0],
+    [width, 0],
+    [width, h],
+    [secondStart, h],
+  ]);
+}
+
+/** One SVG document around a shield's parts. */
+function shieldDocument(
+  title: string,
+  width: number,
+  style: string,
+  parts: string[],
+) {
+  const h = metrics.height;
+  const name = escapeXml(title);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}" role="img" aria-label="${name}"><title>${name}</title>${style}${parts.join("")}</svg>\n`;
+}
+
+const themeStyle = `<style>.g{fill:${themes.light.ground}}.t{fill:${themes.light.text}}.s{fill:${themes.light.slash}}@media (prefers-color-scheme:dark){.g{fill:${themes.dark.ground}}.t{fill:${themes.dark.text}}.s{fill:${themes.dark.slash}}}</style>`;
+
+/** One status shield as a standalone SVG document. */
+export function drawShield(face: Face, fonts: Fonts): string {
+  const { padding } = metrics;
+  const lean = metrics.slashLean * metrics.height;
+  const coderabbit = face.label === "coderabbit";
+  const { parts, secondStart, secondTop } = labelAndSlash(
+    face.label,
+    coderabbit ? "coderabbit" : "allthings",
+    face.label === "preview",
+    fonts,
+  );
+  const textStart = secondStart + lean / 2 + padding;
+  const message = outline(
+    fonts.message,
+    face.message,
+    metrics.messageSize,
+    0,
+    textStart,
+    baseline(fonts.message, metrics.messageSize, false),
+  );
+  const width = Math.ceil(textStart + message.width + padding);
   parts.push(
-    `<path fill="${tones[face.tone]}" d="${messageBlock}"/>`,
+    `<path fill="${tones[face.tone]}" d="${secondBlock(secondStart, secondTop, width)}"/>`,
     `<path fill="${palette.white}" d="${message.d}"/>`,
   );
+  return shieldDocument(
+    `${face.label}: ${face.message}`,
+    width,
+    coderabbit ? "" : themeStyle,
+    parts,
+  );
+}
 
-  const style = coderabbit
-    ? ""
-    : `<style>.g{fill:${themes.light.ground}}.t{fill:${themes.light.text}}.s{fill:${themes.light.slash}}@media (prefers-color-scheme:dark){.g{fill:${themes.dark.ground}}.t{fill:${themes.dark.text}}.s{fill:${themes.dark.slash}}}</style>`;
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}" role="img" aria-label="${title}"><title>${title}</title>${style}${parts.join("")}</svg>\n`;
+/**
+ * The Explain Change shield, which opens CodeRabbit's Change Stack: the
+ * CodeRabbit label's orange and white, and an orange block with a white
+ * arrow. The arrow is a shape, not text, so CR Orange can hold it: white on
+ * it is 3.2:1, past the 3:1 a graphic needs.
+ */
+export function drawExplainChange(fonts: Fonts): string {
+  const { height: h, padding } = metrics;
+  const lean = metrics.slashLean * h;
+  const { parts, secondStart, secondTop } = labelAndSlash(
+    "explain change",
+    "coderabbit",
+    false,
+    fonts,
+  );
+  const start = secondStart + lean / 2 + padding - 2;
+  const width = Math.ceil(start + metrics.arrowWidth + padding);
+  const mid = h / 2;
+  const end = start + metrics.arrowWidth;
+  const stem = 1.1;
+  const head = 4.2;
+  const arrow = polygon([
+    [start, mid - stem],
+    [end - head, mid - stem],
+    [end - head, mid - head],
+    [end, mid],
+    [end - head, mid + head],
+    [end - head, mid + stem],
+    [start, mid + stem],
+  ]);
+  parts.push(
+    `<path fill="${palette.coderabbit}" d="${secondBlock(secondStart, secondTop, width)}"/>`,
+    `<path fill="${palette.white}" d="${arrow}"/>`,
+  );
+  return shieldDocument("Explain Change", width, "", parts);
 }
 
 /** Every shield, by file name. */
@@ -263,7 +357,8 @@ export function drawAll(
   faces: Face[],
   fonts = loadFonts(),
 ): Map<string, string> {
-  return new Map(
-    faces.map((face) => [faceFile(face), drawShield(face, fonts)]),
-  );
+  return new Map([
+    ...faces.map((face) => [faceFile(face), drawShield(face, fonts)] as const),
+    [explainChangeFile, drawExplainChange(fonts)],
+  ]);
 }

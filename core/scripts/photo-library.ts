@@ -94,12 +94,14 @@ export type LibraryPhoto = typeof LibraryPhoto.Type;
  * a shared album, a shared moment or a Shared Library, and not Shared with
  * You. Being in the library doesn't make a photo his; someone else's is
  * never copied, so anything shared is left out, his own shared ones too.
+ * The library must say so: a photo it says nothing of, on any of the four,
+ * is not known to be his, and is left out as well.
  */
 export const isOwn = (photo: LibraryPhoto): boolean =>
-  photo.shared !== true &&
-  photo.syndicated !== true &&
-  photo.shared_library !== true &&
-  photo.shared_moment !== true;
+  photo.shared === false &&
+  photo.syndicated === false &&
+  photo.shared_library === false &&
+  photo.shared_moment === false;
 
 /** What a photo shows, for variety. */
 export type PhotoKind = "stage" | "crowd" | "room" | "close-up";
@@ -397,9 +399,11 @@ export const queryLibrary = (window: { from: string; to: string }) =>
     ),
     // And again here, by what the library says of each: a filter osxphotos
     // drops or changes never lets one through.
+    // What the query's filters left out is never read, so it isn't counted;
+    // `unknown` is what got past them that this check left out.
     Effect.map((photos) => ({
       own: photos.filter(isOwn),
-      shared: photos.filter((photo) => !isOwn(photo)).length,
+      unknown: photos.filter((photo) => !isOwn(photo)).length,
     })),
   );
 

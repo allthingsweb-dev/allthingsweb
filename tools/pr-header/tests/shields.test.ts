@@ -1,8 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { apcaContrast, wcagContrast } from "../../../brand/src/contrast.ts";
-import { allFaces, faceFile, labels } from "../src/faces.ts";
+import { allFaces, explainChangeFile, faceFile, labels } from "../src/faces.ts";
 import {
   coderabbitLabel,
+  drawExplainChange,
   drawShield,
   loadFonts,
   palette,
@@ -68,6 +69,28 @@ describe("a shield", () => {
     expect(ready).toContain(`fill="${tones.good}"`);
   });
 
+  test("leaves the page showing either side of the slash", () => {
+    const points = (d: string) =>
+      [...d.matchAll(/[ML](-?[\d.]+) (-?[\d.]+)/g)].map(([, x, y]) => [
+        Number(x),
+        Number(y),
+      ]);
+    const labelBlock = points(/class="g" d="([^"]+)"/.exec(ready)![1]!);
+    const slash = points(/class="s" d="([^"]+)"/.exec(ready)![1]!);
+    // Top right and bottom right of the label, against the slash's left edge.
+    expect(labelBlock[1]![0]!).toBeLessThan(slash[1]![0]!);
+    expect(labelBlock[2]![0]!).toBeLessThan(slash[0]![0]!);
+  });
+
+  test("for Explain Change is CodeRabbit's orange and white, with an arrow", () => {
+    const explain = drawExplainChange(fonts);
+    expect(explain).toContain('aria-label="Explain Change"');
+    expect(explain).not.toContain("<style>");
+    expect(explain).toContain(`fill="${palette.coderabbit}"`);
+    expect(explain).toContain(`fill="${palette.white}"`);
+    expect(expectedShields().has(explainChangeFile)).toBe(true);
+  });
+
   test("for CodeRabbit is orange and white on either theme", () => {
     const coderabbit = drawShield(
       { label: "coderabbit", message: "approved", tone: "good" },
@@ -113,6 +136,19 @@ describe("shield colors", () => {
     "%s keeps white status text legible",
     (_tone, fill) => legible(palette.white, fill),
   );
+
+  test("the status fills are one family, none much darker than the rest", () => {
+    const ratios = Object.values(tones).map((fill) =>
+      wcagContrast(palette.white, fill),
+    );
+    expect(Math.max(...ratios) - Math.min(...ratios)).toBeLessThan(1);
+  });
+
+  test("white is a legible arrow on CR Orange, as a graphic (3:1)", () => {
+    expect(
+      wcagContrast(palette.white, palette.coderabbit),
+    ).toBeGreaterThanOrEqual(3);
+  });
 
   test.each(Object.entries(themes))(
     "the %s theme's label is legible",

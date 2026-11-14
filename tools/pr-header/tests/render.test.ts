@@ -7,6 +7,7 @@ import {
   shieldUrl,
   withHeader,
 } from "../src/render.ts";
+import { explainChangeFile } from "../src/faces.ts";
 import type { PrState } from "../src/state.ts";
 
 const previewUrl = "https://allthings-web-pr-52-abc123.allthings.workers.dev";
@@ -148,7 +149,7 @@ describe("the PR header", () => {
     });
     const [, inside] = header.split(headerStart);
     expect(inside).toContain(
-      `**CodeRabbit** · merge risk **Low** · [Explain Change](${changeStackUrl(pr)}) · [full walkthrough](${pr.url}#issuecomment-1)`,
+      `**CodeRabbit** · merge risk **Low** · [![Explain Change](${shieldUrl(pr.repo, explainChangeFile)})](${changeStackUrl(pr)}) · [full walkthrough](${pr.url}#issuecomment-1)`,
     );
     expect(header.indexOf("**CodeRabbit**")).toBeGreaterThan(
       header.indexOf("<sub>"),

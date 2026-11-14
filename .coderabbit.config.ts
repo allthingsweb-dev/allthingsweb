@@ -57,7 +57,7 @@ const areas = [
     rules: [
       "cli is `allthings`, the command-line client for people and agents. It reads the public MCP server at https://allthings.dev/mcp (src/config.ts).",
       "Its --json output and its exit codes (0 ok, 1 service error, 2 usage error, 3 no such evening) are a public contract. cli/src/schemas.ts is held to core/src/contract.ts by core/tests/contract.test.ts.",
-      "The old name keeps working: the `atw` bin and ATW_MCP_URL and ATW_VERSION print a note on stderr only, so scripts reading stdout don't break. allthings 2 stays a prerelease until the launch.",
+      "The old name keeps working: the `atw` bin and ATW_MCP_URL and ATW_VERSION print a note on stderr only, so scripts reading stdout don't break.",
     ],
   },
   {

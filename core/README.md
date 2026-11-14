@@ -933,8 +933,8 @@ hour after, San Francisco time. It never writes to the library. Being in
 the library doesn't make a photo Erik's: anything in a shared album, a
 shared moment or an iCloud Shared Library, or Shared with You, is left out,
 by osxphotos's filters and again by what the library says of each photo
-(`isOwn`), his own shared ones too. It keeps what the library says of the
-rest in `~/Desktop/allthings-photos/<date>/library.json`, copies each one's
+(`isOwn`), his own shared ones too. So is a photo the library says nothing
+of on any of those four. It keeps what the library says of the rest in `~/Desktop/allthings-photos/<date>/library.json`, copies each one's
 still preview (which the library keeps even for a photo only in iCloud)
 into `previews/`, and draws a shortlist the same way every time:
 
@@ -1003,6 +1003,43 @@ against production when either file changes, on main, and every Monday.
 
 ```sh
 DATABASE_URL=$(op read "op://allthings/allthings site_reader/credential") bun run hero-photos
+```
+
+## Running an evening's page
+
+One agent runs each evening and keeps its page live, from two weeks
+before it to three days after, with the commands above. `<slug>` is the
+evening's short link (`aie`); the commands that need the long slug print
+it.
+
+| When               | Do                                                                                                                                                                                                  |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T-14 days          | Start `posts sweep <slug> --every 360` in the background: a sweep every six hours, until a week after the evening.                                                                                  |
+| T-14 to T-1, daily | The X pass: `posts x-searches <slug>`, run each search on x.com (read only), put the posts' URLs in a file, `posts add <long slug> --from <file>`. Then review.                                     |
+| The night          | Stop the six-hourly sweep and start `posts sweep <slug> --every 30`. The X pass every hour from an hour before to three hours after. Review each time.                                              |
+| T+1 day            | The X pass and review. The photos: `photos library <slug>`, look at the previews, pick, `photos library <slug> --export <uuid>…`, then `photos add` with alt text written from looking at each one. |
+| T+3 days           | The last X pass and review. Stop the sweep. Anything still pending goes to Erik as a question.                                                                                                      |
+
+Review from `posts pending --slug <long slug>`, each post once:
+
+- **Approve** a post by us (allthings, Erik, Andre, the evening's
+  organizers) about the evening, and a clear post about the evening by
+  someone who came or is coming.
+- **Hide** a post that isn't about the evening: another event, a search's
+  false match, spam.
+- **Leave pending**, and ask Erik in the run's report, anything that names
+  other companies' events or sponsors, complains, is about a person more
+  than the evening, or that you aren't sure of.
+
+Photos: Erik's come from his Photos library, his own only; a guest's
+close-up goes up only when Erik picks it. Other people's photos come in
+only as their posts, which the page shows with their author's name and a
+link. Never copy them.
+
+```sh
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run posts sweep aie --every 360   # the lead-up, in the background
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run posts x-searches aie   # the X pass's searches
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run posts pending --slug <long slug>   # what to review
 ```
 
 ## The guide
